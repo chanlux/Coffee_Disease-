@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ចុះឈ្មោះ - ប្រព័ន្ធជំងឺដើមកាហ្វេ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #2d5016 0%, #1a3a0f 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Noto Sans Khmer', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            position: relative;
+            overflow-x: hidden;
+            margin: 0;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50" opacity="0.05">☕</text></svg>');
+            background-size: 200px;
+            opacity: 0.3;
+            z-index: 0;
+        }
+        
+        .register-container {
+            position: relative;
+            z-index: 1;
+            max-width: 450px;
+            width: 100%;
+            padding: 20px;
+        }
+        
+        .register-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .register-header {
+            background: linear-gradient(135deg, #28a745 0%, #20873a 100%);
+            padding: 30px 20px;
+            text-align: center;
+            color: white;
+        }
+        
+        .coffee-icon {
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 35px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .register-header h1 { font-size: 22px; font-weight: 700; margin: 0; }
+        .register-header p { font-size: 14px; opacity: 0.9; margin-top: 5px; }
+        
+        .register-body { padding: 30px; }
+        
+        .form-label { font-weight: 600; color: #333; font-size: 13px; margin-bottom: 5px; }
+        
+        .input-group-text {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-right: none;
+            color: #666;
+        }
+        
+        .form-control {
+            border: 2px solid #dee2e6;
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+        
+        .form-control:focus {
+            border-color: #28a745;
+            box-shadow: none;
+            z-index: 3;
+        }
+
+        .btn-register {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #28a745 0%, #20873a 100%);
+            border: none;
+            color: white;
+            font-weight: 600;
+            border-radius: 10px;
+            margin-top: 10px;
+            transition: transform 0.2s;
+        }
+        
+        .btn-register:hover {
+            transform: translateY(-2px);
+            color: white;
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+        
+        .password-strength { height: 4px; background: #eee; border-radius: 2px; margin: 8px 0; }
+        .password-strength-bar { height: 100%; width: 0; transition: all 0.3s; }
+        .strength-weak { background: #dc3545; width: 33%; }
+        .strength-medium { background: #ffc107; width: 66%; }
+        .strength-strong { background: #28a745; width: 100%; }
+        
+        .signin-text { text-align: center; margin-top: 20px; font-size: 14px; color: #666; }
+        .signin-link { color: #28a745; text-decoration: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div class="register-container">
+        <div class="register-card">
+            <div class="register-header">
+                <div class="coffee-icon"><i class="fas fa-mug-hot"></i></div>
+                <h1>បង្កើតគណនី</h1>
+                <p>ចូលរួមប្រព័ន្ធជំងឺដើមកាហ្វេ</p>
+            </div>
+            
+            <div class="register-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm">
+                    <div class="mb-3">
+                        <label class="form-label">ឈ្មោះអ្នកប្រើប្រាស់</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" name="username" placeholder="ឈ្មោះអ្នកប្រើប្រាស់" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">អាសយដ្ឋានអ៊ីមែល</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" name="email" placeholder="email@example.com" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">ពាក្យសម្ងាត់</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="យ៉ាងហោចណាស់ ៨ តួអក្សរ" required>
+                        </div>
+                        <div class="password-strength"><div id="strengthBar" class="password-strength-bar"></div></div>
+                        <small id="strengthText" class="text-muted" style="font-size: 11px;">ប្រើអក្សរ និងលេខ</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">បញ្ជាក់ពាក្យសម្ងាត់</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="វាយពាក្យសម្ងាត់ម្តងទៀត" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="agree" required>
+                        <label class="form-check-label" for="agree" style="font-size: 12px; color: #666;">
+                            ខ្ញុំយល់ព្រមតាមលក្ខខណ្ឌ និងគោលការណ៍ភាពឯកជន
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-register">
+                        <i class="fas fa-user-plus me-2"></i>បង្កើតគណនី
+                    </button>
+                    
+                    <div class="signin-text">
+                        មានគណនីរួចហើយមែនទេ? <a href="{{ url_for('auth.login') }}" class="signin-link">ចូល</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4" style="color: rgba(255,255,255,0.6); font-size: 12px;">
+            ប្រព័ន្ធស្រាវជ្រាវ និងគ្រប់គ្រងជំងឺ &copy; 2026
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const passwordInput = document.getElementById('password');
+        const strengthBar = document.getElementById('strengthBar');
+        const strengthText = document.getElementById('strengthText');
+        const confirmPassword = document.getElementById('confirm_password');
+        const form = document.getElementById('registerForm');
+
+        passwordInput.addEventListener('input', function() {
+            const val = this.value;
+            let s = 0;
+            if (val.length >= 8) s++;
+            if (/[A-Z]/.test(val) && /[a-z]/.test(val)) s++;
+            if (/[0-9]/.test(val)) s++;
+            if (/[^A-Za-z0-9]/.test(val)) s++;
+
+            strengthBar.className = 'password-strength-bar';
+            if (s < 2) {
+                strengthBar.classList.add('strength-weak');
+                strengthText.textContent = "ខ្សោយ";
+            } else if (s === 3) {
+                strengthBar.classList.add('strength-medium');
+                strengthText.textContent = "មធ្យម";
+            } else {
+                strengthBar.classList.add('strength-strong');
+                strengthText.textContent = "រឹងមាំ!";
+            }
+        });
+
+        form.addEventListener('submit', function(e) {
+            if (passwordInput.value !== confirmPassword.value) {
+                e.preventDefault();
+                alert("ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ!");
+            }
+        });
+    </script>
+</body>
+</html>

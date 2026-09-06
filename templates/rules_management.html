@@ -1,0 +1,578 @@
+{% extends "base.html" %}
+
+{% block title %}ការគ្រប់គ្រងច្បាប់ - ប្រព័ន្ធជំងឺដើមកាហ្វេ{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 fw-bold">
+            <i class="fas fa-cogs text-warning"></i> ការគ្រប់គ្រងច្បាប់
+        </h1>
+        <p class="text-muted">គ្រប់គ្រងជំងឺ រោគសញ្ញា និងច្បាប់វិនិច្ឆ័យ</p>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#diseases">
+            <i class="fas fa-bug"></i> ជំងឺ
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#symptoms">
+            <i class="fas fa-list"></i> រោគសញ្ញា
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#rules">
+            <i class="fas fa-link"></i> ច្បាប់
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="diseases">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">មូលដ្ឋានទិន្នន័យជំងឺ</h5>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addDiseaseModal">
+                    <i class="fas fa-plus"></i> បន្ថែមជំងឺ
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>កូដ</th>
+                                <th>ឈ្មោះ</th>
+                                <th>ឈ្មោះវិទ្យាសាស្ត្រ</th>
+                                <th>ប្រភេទ</th>
+                                <th>កម្រិតធ្ងន់ធ្ងរ</th>
+                                <th>សកម្មភាព</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for disease in diseases %}
+                            <tr>
+                                <td><span class="badge bg-primary">{{ disease.code }}</span></td>
+                                <td><strong>{{ disease.name }}</strong></td>
+                                <td><em>{{ disease.scientific_name }}</em></td>
+                                <td><span class="badge bg-info">{{ disease.category|category_km if disease.category else 'គ្មាន' }}</span></td>
+                                <td>
+                                    <span class="badge bg-{{ 'danger' if disease.severity == 'critical' else 'warning' if disease.severity == 'high' else 'info' }}">
+                                        {{ disease.severity|severity_km }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-warning" onclick='openEditDisease({{ {"id": disease.id, "code": disease.code, "name": disease.name, "scientific_name": disease.scientific_name, "description": disease.description, "treatment": disease.treatment, "prevention": disease.prevention, "severity": disease.severity}|tojson }})'>
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="if(confirm('លុបជំងឺនេះឬ?')) deleteDisease({{ disease.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3 d-block opacity-25"></i>
+                                    រកមិនឃើញជំងឺទេ។ បន្ថែមជំងឺដំបូងរបស់អ្នក!
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="symptoms">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">មូលដ្ឋានទិន្នន័យរោគសញ្ញា</h5>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSymptomModal">
+                    <i class="fas fa-plus"></i> បន្ថែមរោគសញ្ញា
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>កូដ</th>
+                                <th>ឈ្មោះ</th>
+                                <th>ប្រភេទ</th>
+                                <th>ការពិពណ៌នា</th>
+                                <th>សកម្មភាព</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for symptom in symptoms %}
+                            <tr>
+                                <td><span class="badge bg-secondary">{{ symptom.code }}</span></td>
+                                <td><strong>{{ symptom.name }}</strong></td>
+                                <td><span class="badge bg-info">{{ symptom.category|category_km }}</span></td>
+                                <td>{{ (symptom.description[:60] + '...') if symptom.description and symptom.description|length > 60 else (symptom.description or 'គ្មាន') }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-warning" onclick='openEditSymptom({{ {"id": symptom.id, "code": symptom.code, "name": symptom.name, "description": symptom.description, "category": symptom.category}|tojson }})'>
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="if(confirm('លុបរោគសញ្ញានេះឬ?')) deleteSymptom({{ symptom.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3 d-block opacity-25"></i>
+                                    រកមិនឃើញរោគសញ្ញាទេ។ បន្ថែមរោគសញ្ញាដំបូងរបស់អ្នក!
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="rules">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">ច្បាប់វិនិច្ឆ័យ</h5>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+                    <i class="fas fa-plus"></i> បន្ថែមច្បាប់
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>លេខសម្គាល់ច្បាប់</th>
+                                <th>ជំងឺ</th>
+                                <th>រោគសញ្ញា</th>
+                                <th>កត្តាប្រាកដភាព</th>
+                                <th>ទម្ងន់</th>
+                                <th>សកម្មភាព</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rule in rules %}
+                            <tr>
+                                <td><span class="badge bg-dark">#{{ rule.id }}</span></td>
+                                <td>
+                                    <strong>{{ rule.disease.name }}</strong>
+                                    <small class="d-block text-muted">{{ rule.disease.code }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark">
+                                        {{ rule.symptom.name if rule.symptom else 'មិនស្គាល់' }}
+                                    </span>
+                                </td>
+                                <td><span class="badge bg-success">{{ (rule.certainty_factor * 100)|round|int }}%</span></td>
+                                <td><span class="badge bg-warning text-dark">{{ (rule.weight * 100)|round|int }}%</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="if(confirm('លុបច្បាប់នេះឬ?')) deleteRule({{ rule.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3 d-block opacity-25"></i>
+                                    រកមិនឃើញច្បាប់ទេ។ ភ្ជាប់រោគសញ្ញាទៅជំងឺ!
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addDiseaseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle"></i> បន្ថែមជំងឺថ្មី</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('rules.add_disease') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">កូដជំងឺ *</label>
+                            <input type="text" class="form-control" name="code" required placeholder="ឧ. D003">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">កម្រិតធ្ងន់ធ្ងរ *</label>
+                            <select class="form-select" name="severity" required>
+                                <option value="low">ស្រាល</option>
+                                <option value="medium">មធ្យម</option>
+                                <option value="high">ខ្ពស់</option>
+                                <option value="critical">ធ្ងន់ធ្ងរបំផុត</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ឈ្មោះជំងឺ *</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ឈ្មោះវិទ្យាសាស្ត្រ</label>
+                        <input type="text" class="form-control" name="scientific_name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ការពិពណ៌នា</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ការព្យាបាល</label>
+                        <textarea class="form-control" name="treatment" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ការការពារ</label>
+                        <textarea class="form-control" name="prevention" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> រក្សាទុកជំងឺ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addSymptomModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle"></i> បន្ថែមរោគសញ្ញាថ្មី</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('rules.add_symptom') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">កូដរោគសញ្ញា *</label>
+                        <input type="text" class="form-control" name="code" required placeholder="ឧ. S006">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ឈ្មោះរោគសញ្ញា *</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ប្រភេទ</label>
+                        <select class="form-select" name="category">
+                            <option value="leaf">ស្លឹក</option>
+                            <option value="berry">ផ្លែ</option>
+                            <option value="root">ឫស</option>
+                            <option value="stem">ដើម</option>
+                            <option value="other">ផ្សេងៗ</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ការពិពណ៌នា</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> រក្សាទុករោគសញ្ញា
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addRuleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle"></i> បន្ថែមច្បាប់ថ្មី</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addRuleForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ជំងឺ *</label>
+                        <select class="form-select" name="disease_id" required>
+                            <option value="">ជ្រើសរើសជំងឺ</option>
+                            {% for disease in diseases %}
+                            <option value="{{ disease.id }}">{{ disease.name }} ({{ disease.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">រោគសញ្ញា *</label>
+                        <select class="form-select" name="symptom_id" required>
+                            <option value="">ជ្រើសរើសរោគសញ្ញា</option>
+                            {% for symptom in symptoms %}
+                            <option value="{{ symptom.id }}">{{ symptom.name }} ({{ symptom.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">កត្តាប្រាកដភាព (0.0 - 1.0)</label>
+                        <input type="number" class="form-control" name="certainty_factor" step="0.1" min="0" max="1" value="0.8">
+                        <small class="text-muted">តើរោគសញ្ញានេះប្រាកដប៉ុណ្ណាសម្រាប់ជំងឺនេះ</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ទម្ងន់ (0.0 - 1.0)</label>
+                        <input type="number" class="form-control" name="weight" step="0.1" min="0" max="1" value="1.0">
+                        <small class="text-muted">សារៈសំខាន់នៃរោគសញ្ញានេះ</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> រក្សាទុកច្បាប់
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="editDiseaseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> កែសម្រួលជំងឺ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editDiseaseForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">កូដជំងឺ *</label>
+                            <input type="text" class="form-control" name="code" id="editDiseaseCode" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">កម្រិតធ្ងន់ធ្ងរ *</label>
+                            <select class="form-select" name="severity" id="editDiseaseSeverity" required>
+                                <option value="low">ស្រាល</option>
+                                <option value="medium">មធ្យម</option>
+                                <option value="high">ខ្ពស់</option>
+                                <option value="critical">ធ្ងន់ធ្ងរបំផុត</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ឈ្មោះជំងឺ *</label>
+                        <input type="text" class="form-control" name="name" id="editDiseaseName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ឈ្មោះវិទ្យាសាស្ត្រ</label>
+                        <input type="text" class="form-control" name="scientific_name" id="editDiseaseScientificName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ការពិពណ៌នា</label>
+                        <textarea class="form-control" name="description" id="editDiseaseDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ការព្យាបាល</label>
+                        <textarea class="form-control" name="treatment" id="editDiseaseTreatment" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ការការពារ</label>
+                        <textarea class="form-control" name="prevention" id="editDiseasePrevention" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save"></i> រក្សាទុកការផ្លាស់ប្តូរ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editSymptomModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> កែសម្រួលរោគសញ្ញា</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editSymptomForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">កូដរោគសញ្ញា *</label>
+                        <input type="text" class="form-control" name="code" id="editSymptomCode" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ឈ្មោះរោគសញ្ញា *</label>
+                        <input type="text" class="form-control" name="name" id="editSymptomName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ប្រភេទ</label>
+                        <select class="form-select" name="category" id="editSymptomCategory">
+                            <option value="leaf">ស្លឹក</option>
+                            <option value="berry">ផ្លែ</option>
+                            <option value="root">ឫស</option>
+                            <option value="stem">ដើម</option>
+                            <option value="other">ផ្សេងៗ</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ការពិពណ៌នា</label>
+                        <textarea class="form-control" name="description" id="editSymptomDescription" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save"></i> រក្សាទុកការផ្លាស់ប្តូរ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('addRuleForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch('{{ url_for("rules.add_rule") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('កំហុស៖ ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('កំហុសក្នុងការបន្ថែមច្បាប់');
+        console.error(error);
+    });
+});
+
+function deleteDisease(id) {
+    fetch(`/rules/disease/${id}/delete`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.message);
+        location.reload();
+    });
+}
+
+function deleteRule(id) {
+    fetch(`/rules/rule/${id}/delete`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.message);
+        location.reload();
+    });
+}
+
+function deleteSymptom(id) {
+    fetch(`/rules/symptom/${id}/delete`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.message);
+        location.reload();
+    });
+}
+
+function openEditDisease(disease) {
+    document.getElementById('editDiseaseCode').value = disease.code || '';
+    document.getElementById('editDiseaseSeverity').value = disease.severity || 'low';
+    document.getElementById('editDiseaseName').value = disease.name || '';
+    document.getElementById('editDiseaseScientificName').value = disease.scientific_name || '';
+    document.getElementById('editDiseaseDescription').value = disease.description || '';
+    document.getElementById('editDiseaseTreatment').value = disease.treatment || '';
+    document.getElementById('editDiseasePrevention').value = disease.prevention || '';
+
+    const form = document.getElementById('editDiseaseForm');
+    form.dataset.diseaseId = disease.id;
+
+    new bootstrap.Modal(document.getElementById('editDiseaseModal')).show();
+}
+
+document.getElementById('editDiseaseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = this.dataset.diseaseId;
+    const formData = new FormData(this);
+
+    fetch(`/rules/disease/${id}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('កំហុស៖ ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('កំហុសក្នុងការកែសម្រួលជំងឺ');
+        console.error(error);
+    });
+});
+
+function openEditSymptom(symptom) {
+    document.getElementById('editSymptomCode').value = symptom.code || '';
+    document.getElementById('editSymptomName').value = symptom.name || '';
+    document.getElementById('editSymptomCategory').value = symptom.category || 'other';
+    document.getElementById('editSymptomDescription').value = symptom.description || '';
+
+    const form = document.getElementById('editSymptomForm');
+    form.dataset.symptomId = symptom.id;
+
+    new bootstrap.Modal(document.getElementById('editSymptomModal')).show();
+}
+
+document.getElementById('editSymptomForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = this.dataset.symptomId;
+    const formData = new FormData(this);
+
+    fetch(`/rules/symptom/${id}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('កំហុស៖ ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('កំហុសក្នុងការកែសម្រួលរោគសញ្ញា');
+        console.error(error);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}ការវិនិច្ឆ័យ - ប្រព័ន្ធជំងឺដើមកាហ្វេ{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold">
+                <i class="fas fa-stethoscope text-success"></i> ការវិនិច្ឆ័យជំងឺដើមកាហ្វេ
+            </h1>
+            <p class="text-muted">ជ្រើសរើសរោគសញ្ញាដើម្បីធ្វើការវិនិច្ឆ័យជំងឺ ដោយប្រើប្រព័ន្ធអ្នកជំនាញរបស់យើង</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-list-check"></i> ជ្រើសរើសរោគសញ្ញា</h5>
+                </div>
+                <div class="card-body">
+                    <form id="diagnosisForm">
+                        <div class="row g-3">
+                            {% for symptom in symptoms %}
+                            <div class="col-md-6">
+                                <div class="form-check symptom-checkbox">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="symptoms[]" value="{{ symptom.id }}" 
+                                           id="symptom{{ symptom.id }}">
+                                    <label class="form-check-label" for="symptom{{ symptom.id }}">
+                                        <strong>{{ symptom.name }}</strong>
+                                        <br><small class="text-muted">{{ symptom.description }}</small>
+                                        <span class="badge bg-info ms-2">{{ symptom.category|category_km }}</span>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="location" class="form-label">ទីតាំង (ស្រេចចិត្ត)</label>
+                                <input type="text" class="form-control" id="location" name="location" 
+                                       placeholder="ទីតាំងកសិដ្ឋាន">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="notes" class="form-label">កំណត់ចំណាំបន្ថែម</label>
+                                <input type="text" class="form-control" id="notes" name="notes" 
+                                       placeholder="ការសង្កេតឃើញផ្សេងៗ">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-search"></i> វិនិច្ឆ័យជំងឺ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> សេចក្តីណែនាំ</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="ps-3">
+                        <li class="mb-2">សង្កេតដើមកាហ្វេដោយប្រុងប្រយ័ត្ន</li>
+                        <li class="mb-2">ជ្រើសរើសរោគសញ្ញាទាំងអស់ដែលមើលឃើញពីបញ្ជី</li>
+                        <li class="mb-2">ផ្តល់ព័ត៌មានទីតាំង ប្រសិនបើមាន</li>
+                        <li class="mb-2">ចុចប៊ូតុង "វិនិច្ឆ័យជំងឺ"</li>
+                        <li class="mb-2">ពិនិត្យមើលលទ្ធផលនៃការវិនិច្ឆ័យ</li>
+                    </ol>
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>ចំណាំ៖</strong> កាន់តែជ្រើសរើសរោគសញ្ញាច្រើន = ការវិនិច្ឆ័យកាន់តែត្រឹមត្រូវ
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultsSection" class="row mt-4" style="display: none;">
+        <div class="col-12">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-clipboard-list"></i> លទ្ធផលការវិនិច្ឆ័យ</h5>
+                </div>
+                <div class="card-body" id="resultsContent">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const severityLabelsKm = {
+    'critical': 'ធ្ងន់ធ្ងរបំផុត',
+    'high': 'ខ្ពស់',
+    'medium': 'មធ្យម',
+    'low': 'ស្រាល'
+};
+
+document.getElementById('diagnosisForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const selectedSymptoms = formData.getAll('symptoms[]');
+    
+    if (selectedSymptoms.length === 0) {
+        alert('សូមជ្រើសរើសរោគសញ្ញាយ៉ាងហោចណាស់មួយ');
+        return;
+    }
+    
+    try {
+        const response = await fetch('{{ url_for("diagnosis.diagnose") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayResults(data.results);
+        } else {
+            alert('កំហុស៖ ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('មានកំហុសកើតឡើងក្នុងអំឡុងពេលធ្វើការវិនិច្ឆ័យ');
+    }
+});
+
+function displayResults(results) {
+    const resultsSection = document.getElementById('resultsSection');
+    const resultsContent = document.getElementById('resultsContent');
+    
+    if (results.length === 0) {
+        resultsContent.innerHTML = '<div class="alert alert-warning">រកមិនឃើញជំងឺដែលត្រូវគ្នាទេ។ សូមពិនិត្យមើលការជ្រើសរើសរោគសញ្ញារបស់អ្នកឡើងវិញ។</div>';
+    } else {
+        let html = '<div class="row g-3">';
+        
+        results.forEach((result, index) => {
+            const confidenceClass = result.confidence >= 70 ? 'success' : result.confidence >= 50 ? 'warning' : 'danger';
+            const severityClass = result.severity === 'critical' ? 'danger' : result.severity === 'high' ? 'warning' : 'info';
+            const severityLabel = severityLabelsKm[result.severity] || result.severity;
+            
+            html += `
+                <div class="col-md-12">
+                    <div class="card border-${index === 0 ? 'danger' : 'secondary'} h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title mb-0">
+                                    ${index === 0 ? '<i class="fas fa-star text-warning"></i> ' : ''}
+                                    ${result.disease_name}
+                                    <span class="badge bg-${severityClass} ms-2">${severityLabel}</span>
+                                </h5>
+                                <h4 class="mb-0 text-${confidenceClass}">${result.confidence}%</h4>
+                            </div>
+                            
+                            <div class="progress mb-3" style="height: 25px;">
+                                <div class="progress-bar bg-${confidenceClass}" style="width: ${result.confidence}%">
+                                    ភាពជឿជាក់៖ ${result.confidence}%
+                                </div>
+                            </div>
+                            
+                            <p class="text-muted mb-2"><strong>កូដ៖</strong> ${result.disease_code}</p>
+                            <p class="mb-3">${result.description}</p>
+                            
+                            <div class="accordion" id="accordion${index}">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" 
+                                                data-bs-toggle="collapse" data-bs-target="#treatment${index}">
+                                            <i class="fas fa-pills me-2"></i> ការព្យាបាល
+                                        </button>
+                                    </h2>
+                                    <div id="treatment${index}" class="accordion-collapse collapse" 
+                                         data-bs-parent="#accordion${index}">
+                                        <div class="accordion-body">${result.treatment}</div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" 
+                                                data-bs-toggle="collapse" data-bs-target="#prevention${index}">
+                                            <i class="fas fa-shield-alt me-2"></i> ការការពារ
+                                        </button>
+                                    </h2>
+                                    <div id="prevention${index}" class="accordion-collapse collapse" 
+                                         data-bs-parent="#accordion${index}">
+                                        <div class="accordion-body">${result.prevention}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        resultsContent.innerHTML = html;
+    }
+    
+    resultsSection.style.display = 'block';
+    resultsSection.scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}
