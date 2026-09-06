@@ -8,8 +8,20 @@ class Config:
     
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'coffee-disease-secret-key-change-in-production'
     
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+    # Retrieve database URL from Vercel environment variables (checks both standard key names)
+    db_url = os.environ.get('DATABASE_URL') or os.environ.get('SQLALCHEMY_DATABASE_URI')
+
+    # Format prefixes for SQLAlchemy driver compatibility
+    if db_url:
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        elif db_url.startswith("mysql://"):
+            db_url = db_url.replace("mysql://", "mysql+mysqlconnector://", 1)
+
+    # Fallback to local SQLite file for development
+    SQLALCHEMY_DATABASE_URI = db_url or \
         'sqlite:///' + os.path.join(basedir, 'database', 'coffee_diseases.db')
+        
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
@@ -46,6 +58,7 @@ class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
+
 
 config = {
     'development': DevelopmentConfig,
