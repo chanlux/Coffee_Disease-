@@ -1,13 +1,19 @@
 from flask import Flask
 import os
 import json
-from config import Config
+from config import Config, config as config_dict
 from models import db, login_manager, init_app
 from routes import register_routes
 
 
-def create_app(config_class=Config):
+def create_app(config_class=None):
     app = Flask(__name__)
+
+    # Force production configuration on Vercel so it reads DATABASE_URL
+    if config_class is None:
+        env = os.environ.get('FLASK_ENV', 'production')
+        config_class = config_dict.get(env, Config)
+
     app.config.from_object(config_class)
 
     # Wrap folder creation in try-except so read-only serverless environments don't crash
@@ -59,7 +65,7 @@ def create_app(config_class=Config):
 
     register_routes(app)
 
-    # Safely handle database creation
+    # Safely handle database creation and sample data population on startup
     with app.app_context():
         try:
             db.create_all()
@@ -166,9 +172,7 @@ def create_sample_data():
         print(f"Sample data creation skipped: {e}")
 
 
-# --------------------------------------------------
-# Vercel needs a top-level Flask application instance
-# --------------------------------------------------
+
 
 app = create_app()
 
