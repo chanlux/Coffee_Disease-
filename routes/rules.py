@@ -6,6 +6,7 @@ from models.symptom import Symptom
 
 rules_bp = Blueprint('rules', __name__, url_prefix='/rules')
 
+@rules_bp.route('/')
 @rules_bp.route('/rules/')
 @login_required
 def index():

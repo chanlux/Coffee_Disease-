@@ -1,181 +1,306 @@
 {% extends "base.html" %}
 
-{% block title %}ផ្ទាំងគ្រប់គ្រង - ប្រព័ន្ធជំងឺដើមកាហ្វេ{% endblock %}
+{% block title %}{{ t('dashboard') }} - {{ t('app_title') }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="display-5 fw-bold">
-                <i class="fas fa-tachometer-alt text-success"></i> ផ្ទាំងគ្រប់គ្រង
-            </h1>
-            <p class="text-muted">សូមស្វាគមន៍មកវិញ, {{ current_user.full_name or current_user.username }}!</p>
+<!-- Welcome & Quick Action Bar -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h2 class="h3 fw-bold text-dark mb-0">
+                <i class="fas fa-hand-sparkles text-primary me-1"></i> {{ t('hello') }}, {{ current_user.full_name or current_user.username }}!
+            </h2>
+            {% if is_admin_view %}
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">
+                <i class="fas fa-shield-halved me-1"></i>{{ t('admin_badge') }}
+            </span>
+            {% else %}
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 text-uppercase fw-semibold" style="font-size: 0.75rem;">
+                <i class="fas fa-user-check me-1"></i>{{ t('user_badge') }}
+            </span>
+            {% endif %}
         </div>
+        <p class="text-muted mb-0">
+            {% if is_admin_view %}
+            {{ t('welcome_subtitle_admin') }}
+            {% else %}
+            {{ t('welcome_subtitle_user') }}
+            {% endif %}
+        </p>
     </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('diagnosis.diagnose') }}" class="btn btn-primary shadow-sm px-3">
+            <i class="fas fa-stethoscope me-1"></i> {{ t('new_diagnosis_btn') }}
+        </a>
+    </div>
+</div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-md-3">
-            <div class="card stats-card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">ករណីសរុប</h6>
-                            <h2 class="mb-0 fw-bold">{{ total_cases }}</h2>
-                        </div>
-                        <div class="stats-icon bg-primary">
-                            <i class="fas fa-file-medical"></i>
-                        </div>
-                    </div>
+<!-- Key Performance Metrics (Role-Tailored) -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="stats-card card-primary h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase d-block mb-1">
+                        {% if is_admin_view %}{{ t('total_cases_admin') }}{% else %}{{ t('total_cases_user') }}{% endif %}
+                    </span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ total_cases }}</h3>
+                    <small class="text-primary fw-semibold">
+                        <i class="fas fa-clipboard-check me-1"></i>{% if is_admin_view %}{{ t('system_wide') }}{% else %}{{ t('personal_cases') }}{% endif %}
+                    </small>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card stats-card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">ខែនេះ</h6>
-                            <h2 class="mb-0 fw-bold">2</h2>
-                        </div>
-                        <div class="stats-icon bg-success">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card stats-card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">ភាពជឿជាក់ជាមធ្យម</h6>
-                            <h2 class="mb-0 fw-bold">85%</h2>
-                        </div>
-                        <div class="stats-icon bg-info">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card stats-card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">ជំងឺដែលរកឃើញ</h6>
-                            <h2 class="mb-0 fw-bold">8</h2>
-                        </div>
-                        <div class="stats-icon bg-warning">
-                            <i class="fas fa-bug"></i>
-                        </div>
-                    </div>
+                <div class="stats-icon-wrapper icon-blue">
+                    <i class="fas fa-notes-medical"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom">
-                    <h5 class="mb-0 fw-bold">សកម្មភាពរហ័ស</h5>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stats-card card-info h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase d-block mb-1">
+                        {% if is_admin_view %}{{ t('month_cases_admin') }}{% else %}{{ t('month_cases_user') }}{% endif %}
+                    </span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ month_cases }}</h3>
+                    <small class="text-primary fw-semibold"><i class="fas fa-calendar-check me-1"></i>{{ t('current_month') }}</small>
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <a href="{{ url_for('diagnosis.diagnose') }}" class="text-decoration-none">
-                                <div class="quick-action-card p-3 border rounded text-center">
-                                    <i class="fas fa-stethoscope fa-2x text-success mb-3"></i>
-                                    <h6 class="fw-bold">ការវិនិច្ឆ័យថ្មី</h6>
-                                    <p class="text-muted small mb-0">ចាប់ផ្តើមការវិនិច្ឆ័យជំងឺថ្មី</p>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-md-4">
-                            <a href="{{ url_for('cases.index') }}" class="text-decoration-none">
-                                <div class="quick-action-card p-3 border rounded text-center">
-                                    <i class="fas fa-history fa-2x text-primary mb-3"></i>
-                                    <h6 class="fw-bold">មើលប្រវត្តិ</h6>
-                                    <p class="text-muted small mb-0">ពិនិត្យមើលករណីវិនិច្ឆ័យពីមុន</p>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-md-4">
-                            <a href="{{ url_for('rules.index') }}" class="text-decoration-none">
-                                <div class="quick-action-card p-3 border rounded text-center">
-                                    <i class="fas fa-cogs fa-2x text-warning mb-3"></i>
-                                    <h6 class="fw-bold">គ្រប់គ្រងច្បាប់</h6>
-                                    <p class="text-muted small mb-0">កំណត់រចនាសម្ព័ន្ធច្បាប់ជំងឺ</p>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
+                <div class="stats-icon-wrapper icon-blue">
+                    <i class="fas fa-calendar-alt"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom">
-                    <h5 class="mb-0 fw-bold">ករណីវិនិច្ឆ័យថ្មីៗ</h5>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stats-card card-warning h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase d-block mb-1">{{ t('avg_confidence') }}</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ avg_confidence }}%</h3>
+                    <small class="text-warning fw-semibold"><i class="fas fa-shield-halved me-1"></i>Certainty Factor</small>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>កាលបរិច្ឆេទ</th>
-                                    <th>ជំងឺ</th>
-                                    <th>ភាពជឿជាក់</th>
-                                    <th>ទីតាំង</th>
-                                    <th>សកម្មភាព</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if recent_cases %}
-                                    {% for case in recent_cases %}
-                                    <tr id="case-row-{{ case.id }}">
-                                        <td>{{ case.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                                        <td><span class="badge bg-danger">{{ case.disease_diagnosed }}</span></td>
-                                        <td>
-                                            <div class="progress" style="height: 20px;">
-                                                <div class="progress-bar bg-success" role="progressbar" 
-                                                     style="width: {{ case.confidence_score }}%">
-                                                    {{ case.confidence_score|round(1) }}%
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>{{ case.location or 'គ្មាន' }}</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-            
-                                                
-                                                {% if current_user.role in ['admin', 'manager'] %}
-                                                <button class="btn btn-outline-danger" onclick="deleteCase({{ case.id }})">
-                                                    <i class="fas fa-trash-alt"></i> លុប
-                                                </button>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                {% else %}
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted py-4">
-                                            មិនទាន់មានករណីវិនិច្ឆ័យទេ។ <a href="{{ url_for('diagnosis.diagnose') }}">ចាប់ផ្តើមការវិនិច្ឆ័យដំបូងរបស់អ្នក</a>
-                                        </td>
-                                    </tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="stats-icon-wrapper icon-amber">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="stats-card card-accent h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase d-block mb-1">{{ t('knowledge_base') }}</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ total_diseases }} {{ t('diseases_unit') }}</h3>
+                    <small class="text-muted"><i class="fas fa-list-check me-1"></i>{{ total_symptoms }} {{ t('symptoms_unit') }}</small>
+                </div>
+                <div class="stats-icon-wrapper icon-rose">
+                    <i class="fas fa-bug"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Access Panels (Role-Tailored) -->
+<div class="mb-4">
+    <div class="row g-3">
+        {% if is_admin_view %}
+        <div class="col-md-3">
+            <a href="{{ url_for('diagnosis.diagnose') }}" class="action-tile h-100">
+                <div class="action-tile-icon icon-emerald">
+                    <i class="fas fa-stethoscope"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">{{ t('tile_diagnose_title') }}</h6>
+                    <p class="text-muted small mb-0">{{ t('tile_diagnose_desc_admin') }}</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('cases.index') }}" class="action-tile h-100">
+                <div class="action-tile-icon icon-blue">
+                    <i class="fas fa-clock-rotate-left"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">{{ t('tile_cases_title_admin') }}</h6>
+                    <p class="text-muted small mb-0">{{ t('tile_cases_desc_admin') }}</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('rules.index') }}" class="action-tile h-100">
+                <div class="action-tile-icon icon-amber">
+                    <i class="fas fa-sliders"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">{{ t('tile_rules_title') }}</h6>
+                    <p class="text-muted small mb-0">{{ t('tile_rules_desc') }}</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('auth.manage_users') }}" class="action-tile h-100">
+                <div class="action-tile-icon icon-purple" style="color: #6366f1; background-color: #eef2ff;">
+                    <i class="fas fa-users-gear"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">{{ t('tile_users_title') }}</h6>
+                    <p class="text-muted small mb-0">{{ t('tile_users_desc') }}</p>
+                </div>
+            </a>
+        </div>
+        {% else %}
+        <div class="col-md-4">
+            <a href="{{ url_for('diagnosis.diagnose') }}" class="action-tile h-100">
+                <div class="action-tile-icon icon-emerald">
+                    <i class="fas fa-stethoscope"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">{{ t('tile_diagnose_title') }}</h6>
+                    <p class="text-muted small mb-0">{{ t('tile_diagnose_desc_user') }}</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('cases.index') }}" class="action-tile h-100">
+                <div class="action-tile-icon icon-blue">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">{{ t('tile_cases_title_user') }}</h6>
+                    <p class="text-muted small mb-0">{{ t('tile_cases_desc_user') }}</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('auth.profile') }}" class="action-tile h-100">
+                <div class="action-tile-icon icon-amber">
+                    <i class="fas fa-user-gear"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">{{ t('tile_profile_title') }}</h6>
+                    <p class="text-muted small mb-0">{{ t('tile_profile_desc') }}</p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Diagnosis Cases Table -->
+<div class="card shadow-sm border">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-clock-rotate-left text-primary fs-5"></i>
+            <h5 class="mb-0 fw-bold fs-6">
+                {% if is_admin_view %}{{ t('recent_cases_admin') }}{% else %}{{ t('recent_cases_user') }}{% endif %}
+            </h5>
+        </div>
+        <a href="{{ url_for('cases.index') }}" class="btn btn-sm btn-outline-secondary">
+            {{ t('view_all') }} <i class="fas fa-arrow-right ms-1"></i>
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">{{ t('th_date') }}</th>
+                        {% if is_admin_view %}
+                        <th>{{ t('th_user') }}</th>
+                        {% endif %}
+                        <th>{{ t('th_disease') }}</th>
+                        <th>{{ t('th_confidence') }}</th>
+                        <th>{{ t('th_location') }}</th>
+                        <th class="text-end pe-4">{{ t('th_actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="dashboardTableBody">
+                    {% if recent_cases %}
+                        {% for case in recent_cases %}
+                        <tr id="case-row-{{ case.id }}">
+                            <td class="ps-4 text-nowrap">
+                                <span class="fw-semibold text-dark">{{ case.created_at.strftime('%Y-%m-%d') if case.created_at else t('unspecified') }}</span>
+                                <small class="text-muted d-block">{{ case.created_at.strftime('%H:%M') if case.created_at else '' }}</small>
+                            </td>
+                            {% if is_admin_view %}
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-muted" style="width: 30px; height: 30px; font-size: 0.8rem;">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <span class="small fw-semibold text-dark d-block">{{ case.user.full_name or case.user.username if case.user else t('th_user') }}</span>
+                                        <small class="text-muted">@{{ case.user.username if case.user else 'user' }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            {% endif %}
+                            <td>
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                    <i class="fas fa-circle-exclamation me-1"></i>{{ case.disease_diagnosed }}
+                                </span>
+                            </td>
+                            <td style="min-width: 180px;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 7px;">
+                                        <div class="progress-bar {% if case.confidence_score >= 80 %}bg-primary{% elif case.confidence_score >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ case.confidence_score }}%"></div>
+                                    </div>
+                                    <span class="small fw-bold text-dark">{{ case.confidence_score|round(1) }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-muted small">
+                                    <i class="fas fa-location-dot me-1 text-secondary"></i>{{ case.location or t('unspecified') }}
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex justify-content-end gap-1">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="showCaseModal({{ case.id }})" title="{{ t('view_details') }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if current_user.role in ['admin', 'manager'] %}
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCase({{ case.id }})" title="{{ t('delete') }}">
+                                        <i class="fas fa-trash-can"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="{% if is_admin_view %}6{% else %}5{% endif %}" class="text-center py-5 text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3 text-secondary opacity-50 d-block"></i>
+                                <p class="mb-1 fw-semibold">{{ t('no_recent_cases') }}</p>
+                                <a href="{{ url_for('diagnosis.diagnose') }}" class="btn btn-sm btn-primary mt-2">
+                                    <i class="fas fa-stethoscope me-1"></i> {{ t('start_first_diag') }}
+                                </a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Viewing Case Details -->
+<div class="modal fade" id="caseDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalDiseaseTitle">{{ t('case_details_modal_title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalCaseBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
                 </div>
             </div>
         </div>
@@ -185,31 +310,96 @@
 
 {% block extra_js %}
 <script>
-function viewCase(id) {
-    window.location.href = `/cases/${id}`;
+const I18N = {
+    currentLang: '{{ current_lang }}',
+    deleteConfirm: '{{ t("delete_confirm") }}',
+    caseTitle: '{{ t("th_disease") }}',
+    dateLabel: '{{ t("th_date") }}',
+    locationLabel: '{{ t("th_location") }}',
+    notesLabel: '{{ t("notes_label") }}',
+    analysisResults: '{{ t("analysis_results_heading") }}',
+    treatmentLabel: '{{ t("treatment_label") }}',
+    preventionLabel: '{{ t("prevention_label") }}',
+    noResults: '{{ t("no_detailed_results") }}',
+    none: '{{ t("unspecified") }}'
+};
+
+async function showCaseModal(caseId) {
+    const modal = new bootstrap.Modal(document.getElementById('caseDetailModal'));
+    modal.show();
+    const body = document.getElementById('modalCaseBody');
+    body.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+    
+    try {
+        const res = await fetch(`/cases/${caseId}`, { credentials: 'same-origin', headers: {'Accept': 'application/json'} });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        
+        document.getElementById('modalDiseaseTitle').textContent = `#${data.id}: ${data.disease_diagnosed || I18N.none}`;
+        
+        let resultsHtml = '';
+        if (data.diagnosis_result && data.diagnosis_result.length > 0) {
+            resultsHtml = data.diagnosis_result.map(r => {
+                const name = (I18N.currentLang === 'en' && r.disease_name_en) ? r.disease_name_en : r.disease_name;
+                const desc = (I18N.currentLang === 'en' && r.description_en) ? r.description_en : (r.description || '');
+                const treat = (I18N.currentLang === 'en' && r.treatment_en) ? r.treatment_en : (r.treatment || I18N.none);
+                const prev = (I18N.currentLang === 'en' && r.prevention_en) ? r.prevention_en : (r.prevention || I18N.none);
+                return `
+                    <div class="p-3 mb-2 rounded bg-light border">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong class="text-dark">${name} (${r.disease_code})</strong>
+                            <span class="badge bg-primary">${r.confidence}%</span>
+                        </div>
+                        <p class="small text-muted mb-2">${desc}</p>
+                        <div class="small mb-1"><strong class="text-primary">${I18N.treatmentLabel}</strong> ${treat}</div>
+                        <div class="small"><strong class="text-primary">${I18N.preventionLabel}</strong> ${prev}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        body.innerHTML = `
+            <div class="mb-3">
+                <div class="row g-2 mb-3">
+                    <div class="col-sm-6">
+                        <div class="p-2 bg-light rounded small"><strong>${I18N.dateLabel}៖</strong> ${data.created_at || I18N.none}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-2 bg-light rounded small"><strong>${I18N.locationLabel}៖</strong> ${data.location || I18N.none}</div>
+                    </div>
+                    ${data.notes ? `<div class="col-12"><div class="p-2 bg-light rounded small"><strong>${I18N.notesLabel}</strong> ${data.notes}</div></div>` : ''}
+                </div>
+                <h6 class="fw-bold mb-2">${I18N.analysisResults}</h6>
+                ${resultsHtml || `<p class="text-muted small">${I18N.noResults}</p>`}
+            </div>
+        `;
+    } catch (e) {
+        body.innerHTML = '<div class="alert alert-danger mb-0">Error loading case details</div>';
+    }
 }
 
-function deleteCase(id) {
-    if (confirm('តើអ្នកប្រាកដថាចង់លុបករណីនេះមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។')) {
-        fetch(`/cases/${id}/delete`, {
+async function deleteCase(caseId) {
+    if (!confirm(I18N.deleteConfirm)) return;
+    
+    try {
+        const res = await fetch(`/cases/${caseId}/delete`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const row = document.getElementById(`case-row-${id}`);
-                if (row) row.remove();
-            } else {
-                alert('កំហុស៖ ' + data.message);
-            }
-        })
-        .catch(err => {
-            console.error('Error:', err);
-            alert('មានកំហុសកើតឡើងខណៈពេលកំពុងលុបករណីនេះ។');
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json'}
         });
+        const data = await res.json();
+        if (data.success) {
+            const row = document.getElementById(`case-row-${caseId}`);
+            if (row) {
+                row.style.transition = 'all 0.3s ease';
+                row.style.opacity = '0';
+                setTimeout(() => row.remove(), 300);
+            }
+        } else {
+            alert('Failed: ' + (data.message || 'Error'));
+        }
+    } catch (e) {
+        alert('Server communication error');
     }
 }
 </script>

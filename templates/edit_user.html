@@ -1,32 +1,67 @@
 {% extends "base.html" %}
+
+{% block title %}កែសម្រួលគណនី - ប្រព័ន្ធអ្នកជំនាញជំងឺដើមកាហ្វេ{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <div class="card shadow-sm border-0">
-        <div class="card-body">
-            <h3><i class="fas fa-user-edit text-primary"></i> កែសម្រួលអ្នកប្រើប្រាស់៖ {{ user.username }}</h3>
-            <hr>
-            <form method="POST">
-                <div class="mb-3">
-                    <label class="form-label">ឈ្មោះអ្នកប្រើប្រាស់</label>
-                    <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">អ៊ីមែល</label>
-                    <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">តួនាទី</label>
-                    <select name="role" class="form-select">
-                        <option value="user" {% if user.role == 'user' %}selected{% endif %}>អ្នកប្រើប្រាស់</option>
-                        <option value="doctor" {% if user.role == 'doctor' %}selected{% endif %}>វេជ្ជបណ្ឌិត</option>
-                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>អ្នកគ្រប់គ្រង</option>
-                    </select>
-                </div>
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-success">ធ្វើបច្ចុប្បន្នភាពអ្នកប្រើប្រាស់</button>
-                    <a href="{{ url_for('auth.manage_users') }}" class="btn btn-secondary">បោះបង់</a>
-                </div>
-            </form>
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <a href="{{ url_for('auth.manage_users') }}" class="btn btn-sm btn-light border text-muted">
+                <i class="fas fa-arrow-left me-1"></i> ត្រឡប់ក្រោយ
+            </a>
+        </div>
+
+        <div class="card border shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold fs-6">
+                    <i class="fas fa-user-pen text-primary me-2"></i> កែសម្រួលអ្នកប្រើប្រាស់៖ <span class="text-primary">{{ user.username }}</span>
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">ឈ្មោះពេញ</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-id-card text-muted"></i></span>
+                            <input type="text" name="full_name" class="form-control" value="{{ user.full_name or '' }}" placeholder="ឈ្មោះពេញរបស់អ្នកប្រើប្រាស់">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">ឈ្មោះអ្នកប្រើប្រាស់ (Username) *</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user text-muted"></i></span>
+                            <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">អាសយដ្ឋានអ៊ីមែល *</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-envelope text-muted"></i></span>
+                            <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold">តួនាទីក្នុងប្រព័ន្ធ (Role)</label>
+                        <select name="role" class="form-select">
+                            <option value="user" {% if user.role == 'user' %}selected{% endif %}>អ្នកប្រើប្រាស់ (User)</option>
+                            <option value="doctor" {% if user.role == 'doctor' %}selected{% endif %}>វេជ្ជបណ្ឌិត (Doctor)</option>
+                            <option value="expert" {% if user.role == 'expert' %}selected{% endif %}>អ្នកជំនាញ (Expert)</option>
+                            <option value="manager" {% if user.role == 'manager' %}selected{% endif %}>អ្នកចាត់ការ (Manager)</option>
+                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>អ្នកគ្រប់គ្រង (Admin)</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('auth.manage_users') }}" class="btn btn-light">បោះបង់</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check me-1"></i> រក្សាទុកការផ្លាស់ប្តូរ
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>

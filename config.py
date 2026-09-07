@@ -1,7 +1,9 @@
 import os
 from datetime import timedelta
+from dotenv import load_dotenv
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '.env'))
 
 class Config:
     """Flask application configuration"""
@@ -17,10 +19,13 @@ class Config:
             db_url = db_url.replace("postgres://", "postgresql://", 1)
         elif db_url.startswith("mysql://"):
             db_url = db_url.replace("mysql://", "mysql+mysqlconnector://", 1)
+        elif db_url.startswith("sqlite:///") and not db_url.startswith("sqlite:////") and not db_url.startswith("sqlite:///:memory:"):
+            rel_path = db_url.replace("sqlite:///", "", 1)
+            db_url = 'sqlite:///' + os.path.join(basedir, rel_path)
 
     # Fallback to local SQLite file for development
     SQLALCHEMY_DATABASE_URI = db_url or \
-        'sqlite:///' + os.path.join(basedir, 'database', 'coffee_diseases.db')
+        'sqlite:///' + os.path.join(basedir, 'coffee_diseases.db')
         
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
@@ -50,7 +55,8 @@ class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
     TESTING = False
-    SESSION_COOKIE_SECURE = True
+    # Only enforce secure cookies if on Vercel/HTTPS or explicitly configured
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True' if os.environ.get('VERCEL') else 'False').lower() in ('true', '1')
 
 
 class TestingConfig(Config):

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('profile_title') }} - {{ t('app_title') }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- User Overview Card -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border mb-4">
+            <div class="card-body text-center p-4">
+                <div class="avatar-lg bg-primary-subtle text-primary rounded-circle mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; font-size: 2.5rem;">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h5 class="fw-bold mb-1 text-dark">{{ current_user.full_name or current_user.username }}</h5>
+                <p class="text-muted small mb-2">@{{ current_user.username }}</p>
+                <div>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 text-uppercase fw-semibold">
+                        <i class="fas fa-shield-halved me-1"></i>{{ current_user.role }}
+                    </span>
+                </div>
+            </div>
+            <div class="border-top p-3 bg-light">
+                <div class="row text-center">
+                    <div class="col">
+                        <span class="text-muted small d-block">{{ t('diagnoses_count_label') }}</span>
+                        <h4 class="fw-bold text-dark mb-0">{{ user_cases_count }}</h4>
+                    </div>
+                    <div class="col border-start">
+                        <span class="text-muted small d-block">{{ t('account_status_label') }}</span>
+                        <span class="badge bg-primary mt-1">{{ t('active_status') }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="fas fa-circle-info text-primary me-2"></i>{{ t('security_tips_title') }}
+                </h6>
+            </div>
+            <div class="card-body small text-muted">
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                    <li class="d-flex align-items-start gap-2">
+                        <i class="fas fa-check text-primary mt-1"></i>
+                        <span>{{ t('tip_length') }}</span>
+                    </li>
+                    <li class="d-flex align-items-start gap-2">
+                        <i class="fas fa-check text-primary mt-1"></i>
+                        <span>{{ t('tip_share') }}</span>
+                    </li>
+                    <li class="d-flex align-items-start gap-2">
+                        <i class="fas fa-check text-primary mt-1"></i>
+                        <span>{{ t('tip_change') }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile & Password -->
+    <div class="col-lg-8">
+        <!-- Edit Profile Information -->
+        <div class="card shadow-sm border mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="fas fa-id-card text-primary me-2"></i>{{ t('edit_account_title') }}
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('auth.profile') }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ t('username_label') }}</label>
+                            <input type="text" class="form-control bg-light" value="{{ current_user.username }}" disabled>
+                            <small class="text-muted">{{ t('username_cannot_change') }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">{{ t('role_label') }}</label>
+                            <input type="text" class="form-control bg-light text-uppercase" value="{{ current_user.role }}" disabled>
+                            <small class="text-muted">{{ t('role_admin_managed') }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="full_name">{{ t('full_name_label') }}</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ current_user.full_name or '' }}" placeholder="John Doe" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="email">{{ t('email_label') }}</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email or '' }}" placeholder="example@gmail.com" required>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-end">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save me-1"></i> {{ t('save_changes_btn') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="card shadow-sm border">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="fas fa-key text-warning me-2"></i>{{ t('change_password_title') }}
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('auth.profile') }}">
+                    <input type="hidden" name="full_name" value="{{ current_user.full_name or current_user.username }}">
+                    <input type="hidden" name="email" value="{{ current_user.email or '' }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="current_password">{{ t('current_password_label') }}</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fas fa-lock text-muted"></i></span>
+                            <input type="password" class="form-control" id="current_password" name="current_password" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="new_password">{{ t('new_password_label') }}</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-lock-open text-muted"></i></span>
+                                <input type="password" class="form-control" id="new_password" name="new_password" placeholder="{{ t('min_6_chars_placeholder') }}" required minlength="6">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="confirm_password">{{ t('confirm_password_label') }}</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-check-double text-muted"></i></span>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="{{ t('min_6_chars_placeholder') }}" required minlength="6">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-warning px-4 text-dark fw-semibold">
+                            <i class="fas fa-shield-halved me-1"></i> {{ t('update_password_btn') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

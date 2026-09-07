@@ -1,97 +1,338 @@
 {% extends "base.html" %}
 
-{% block title %}ការវិនិច្ឆ័យ - ប្រព័ន្ធជំងឺដើមកាហ្វេ{% endblock %}
+{% block title %}{{ t('diag_header_title') }} - {{ t('app_title') }}{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="display-5 fw-bold">
-                <i class="fas fa-stethoscope text-success"></i> ការវិនិច្ឆ័យជំងឺដើមកាហ្វេ
-            </h1>
-            <p class="text-muted">ជ្រើសរើសរោគសញ្ញាដើម្បីធ្វើការវិនិច្ឆ័យជំងឺ ដោយប្រើប្រព័ន្ធអ្នកជំនាញរបស់យើង</p>
+<!-- Clinical Header -->
+<div class="row mb-3 align-items-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1">
+                <i class="fas fa-brain me-1"></i> {% if current_lang == 'en' %}Expert Inference System{% else %}ប្រព័ន្ធវិនិច្ឆ័យបញ្ញាសិប្បនិម្មិត{% endif %}
+            </span>
+            <span class="badge bg-light text-muted border px-2 py-1">
+                <i class="fas fa-code-branch me-1"></i> Forward Chaining + CF
+            </span>
+        </div>
+        <h2 class="h3 fw-bold text-dark mb-1">
+            <i class="fas fa-stethoscope text-primary me-2"></i>{{ t('diag_header_title') }}
+        </h2>
+        <p class="text-muted mb-0 small">{{ t('diag_header_subtitle') }}</p>
+    </div>
+    <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+        <div class="d-inline-flex align-items-center gap-2 bg-white border rounded-pill px-3 py-2 shadow-xs">
+            <span class="text-muted small">{{ t('selected_symptoms_badge') }}៖</span>
+            <span class="badge bg-primary text-white rounded-pill px-2.5 py-1" id="selectedCount">0</span>
+            <span class="text-muted small">{{ t('symptoms_unit') }}</span>
+            <button type="button" class="btn btn-link btn-sm text-decoration-none text-muted p-0 ms-2" id="headerResetBtn" title="{{ t('clear_all') }}">
+                <i class="fas fa-rotate-left"></i>
+            </button>
         </div>
     </div>
+</div>
 
-    <div class="row">
+<!-- Clinical Stepper -->
+<div class="diagnostic-stepper">
+    <div class="stepper-step active" id="step1Indicator">
+        <span class="stepper-num"><i class="fas fa-eye"></i></span>
+        <span>{{ t('diag_stepper_1') }}</span>
+    </div>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step" id="step2Indicator">
+        <span class="stepper-num"><i class="fas fa-map-location-dot"></i></span>
+        <span>{{ t('diag_stepper_2') }}</span>
+    </div>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step" id="step3Indicator">
+        <span class="stepper-num"><i class="fas fa-chart-pie"></i></span>
+        <span>{{ t('diag_stepper_3') }}</span>
+    </div>
+</div>
+
+<!-- Main Diagnostic Workspace -->
+<form id="diagnosisForm">
+    <div class="row g-4">
+        <!-- Left Column: Symptoms Catalog & Farm Context -->
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="fas fa-list-check"></i> ជ្រើសរើសរោគសញ្ញា</h5>
+            <!-- Symptoms Selector Card -->
+            <div class="card border shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+                        <div>
+                            <h5 class="mb-0 fw-bold fs-6 text-dark">
+                                <i class="fas fa-clipboard-check text-primary me-2"></i>{{ t('symptoms_catalog') }}
+                            </h5>
+                            <small class="text-muted">{{ t('symptoms_catalog_sub') }}</small>
+                        </div>
+                        <!-- Live Search with Clear Button -->
+                        <div class="input-group input-group-sm" style="max-width: 320px;">
+                            <span class="input-group-text bg-light border-end-0 text-muted">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" id="symptomSearch" class="form-control border-start-0 border-end-0" 
+                                   placeholder="{{ t('search_symptoms_placeholder') }}" autocomplete="off">
+                            <button class="btn btn-outline-secondary border-start-0 bg-white" type="button" id="clearSearchBtn" style="display: none;">
+                                <i class="fas fa-times text-muted"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Category Pills with Dynamic Counts -->
+                    {% set leaf_count = symptoms|selectattr('category', 'equalto', 'leaf')|list|length %}
+                    {% set stem_count = symptoms|selectattr('category', 'equalto', 'stem')|list|length %}
+                    {% set root_count = symptoms|selectattr('category', 'equalto', 'root')|list|length %}
+                    {% set berry_count = symptoms|selectattr('category', 'equalto', 'berry')|list|length %}
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-1 border-top">
+                        <div class="d-flex flex-wrap gap-1.5 align-items-center">
+                            <button type="button" class="category-filter-btn active" data-category="all">
+                                <span>{{ t('all_categories') }}</span>
+                                <span class="badge-pill-count">{{ symptoms|length }}</span>
+                            </button>
+                            <button type="button" class="category-filter-btn" data-category="leaf">
+                                <span>{{ t('cat_leaf') }}</span>
+                                <span class="badge-pill-count">{{ leaf_count }}</span>
+                            </button>
+                            <button type="button" class="category-filter-btn" data-category="stem">
+                                <span>{{ t('cat_stem') }}</span>
+                                <span class="badge-pill-count">{{ stem_count }}</span>
+                            </button>
+                            <button type="button" class="category-filter-btn" data-category="root">
+                                <span>{{ t('cat_root') }}</span>
+                                <span class="badge-pill-count">{{ root_count }}</span>
+                            </button>
+                            {% if berry_count > 0 %}
+                            <button type="button" class="category-filter-btn" data-category="berry">
+                                <span>{{ t('cat_fruit') }}</span>
+                                <span class="badge-pill-count">{{ berry_count }}</span>
+                            </button>
+                            {% endif %}
+                        </div>
+
+                        <!-- Selection Utility Actions -->
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none text-primary p-0 small fw-semibold" id="btnSelectVisible">
+                                <i class="fas fa-check-double me-1"></i>{{ t('select_all_btn') }}
+                            </button>
+                            <span class="text-muted">|</span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted p-0 small" id="btnDeselectVisible">
+                                {{ t('deselect_all_btn') }}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form id="diagnosisForm">
-                        <div class="row g-3">
-                            {% for symptom in symptoms %}
-                            <div class="col-md-6">
-                                <div class="form-check symptom-checkbox">
-                                    <input class="form-check-input" type="checkbox" 
-                                           name="symptoms[]" value="{{ symptom.id }}" 
-                                           id="symptom{{ symptom.id }}">
-                                    <label class="form-check-label" for="symptom{{ symptom.id }}">
-                                        <strong>{{ symptom.name }}</strong>
-                                        <br><small class="text-muted">{{ symptom.description }}</small>
-                                        <span class="badge bg-info ms-2">{{ symptom.category|category_km }}</span>
-                                    </label>
+
+                <!-- Symptoms Cards Grid -->
+                <div class="card-body p-3 p-md-4">
+                    <div class="row g-3" id="symptomsList">
+                        {% for symptom in symptoms %}
+                        {% set s_name = get_symptom_name(symptom) %}
+                        {% set s_desc = get_symptom_desc(symptom) %}
+                        <div class="col-md-6 symptom-item" 
+                             data-category="{{ symptom.category or 'other' }}" 
+                             data-id="{{ symptom.id }}"
+                             data-code="{{ symptom.code }}"
+                             data-display-name="{{ s_name }}"
+                             data-search="{{ s_name.lower() }} {{ symptom.name.lower() }} {{ symptom.code.lower() }} {{ s_desc.lower() if s_desc else '' }}">
+                            <label class="symptom-card" for="symptom{{ symptom.id }}">
+                                <input class="form-check-input symptom-cb" type="checkbox" 
+                                       name="symptoms[]" value="{{ symptom.id }}" 
+                                       id="symptom{{ symptom.id }}"
+                                       data-id="{{ symptom.id }}"
+                                       data-code="{{ symptom.code }}"
+                                       data-display-name="{{ s_name }}">
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="d-flex justify-content-between align-items-center gap-1 mb-1.5">
+                                        <div class="d-flex align-items-center gap-1.5 overflow-hidden">
+                                            <span class="symptom-code-badge">{{ symptom.code }}</span>
+                                            <strong class="text-dark small text-truncate" title="{{ s_name }}">{{ s_name }}</strong>
+                                        </div>
+                                        <span class="badge bg-light text-secondary border flex-shrink-0" style="font-size: 0.68rem;">
+                                            {{ symptom.category|category_label }}
+                                        </span>
+                                    </div>
+                                    {% if s_desc %}
+                                    <p class="text-muted mb-0 lh-sm" style="font-size: 0.78rem;">{{ s_desc }}</p>
+                                    {% endif %}
                                 </div>
-                            </div>
-                            {% endfor %}
+                            </label>
                         </div>
+                        {% endfor %}
+                    </div>
 
-                        <hr class="my-4">
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="location" class="form-label">ទីតាំង (ស្រេចចិត្ត)</label>
-                                <input type="text" class="form-control" id="location" name="location" 
-                                       placeholder="ទីតាំងកសិដ្ឋាន">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="notes" class="form-label">កំណត់ចំណាំបន្ថែម</label>
-                                <input type="text" class="form-control" id="notes" name="notes" 
-                                       placeholder="ការសង្កេតឃើញផ្សេងៗ">
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-success btn-lg w-100">
-                            <i class="fas fa-search"></i> វិនិច្ឆ័យជំងឺ
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> សេចក្តីណែនាំ</h5>
-                </div>
-                <div class="card-body">
-                    <ol class="ps-3">
-                        <li class="mb-2">សង្កេតដើមកាហ្វេដោយប្រុងប្រយ័ត្ន</li>
-                        <li class="mb-2">ជ្រើសរើសរោគសញ្ញាទាំងអស់ដែលមើលឃើញពីបញ្ជី</li>
-                        <li class="mb-2">ផ្តល់ព័ត៌មានទីតាំង ប្រសិនបើមាន</li>
-                        <li class="mb-2">ចុចប៊ូតុង "វិនិច្ឆ័យជំងឺ"</li>
-                        <li class="mb-2">ពិនិត្យមើលលទ្ធផលនៃការវិនិច្ឆ័យ</li>
-                    </ol>
-                    <div class="alert alert-warning mt-3">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>ចំណាំ៖</strong> កាន់តែជ្រើសរើសរោគសញ្ញាច្រើន = ការវិនិច្ឆ័យកាន់តែត្រឹមត្រូវ
+                    <!-- No Results Placeholder for Search -->
+                    <div id="noSearchMatch" class="text-center py-5 text-muted" style="display: none;">
+                        <i class="fas fa-magnifying-glass fa-2x mb-2 text-secondary opacity-50"></i>
+                        <p class="small mb-0">{% if current_lang == 'en' %}No symptoms matched your search query.{% else %}មិនមានរោគសញ្ញាត្រូវគ្នានឹងការស្វែងរកឡើយ។{% endif %}</p>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div id="resultsSection" class="row mt-4" style="display: none;">
-        <div class="col-12">
-            <div class="card border-0 shadow-lg">
-                <div class="card-header bg-danger text-white">
-                    <h5 class="mb-0"><i class="fas fa-clipboard-list"></i> លទ្ធផលការវិនិច្ឆ័យ</h5>
+            <!-- Farm Context & Field Notes Card -->
+            <div class="card border shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-bold fs-6 text-dark">
+                        <i class="fas fa-map-location-dot text-primary me-2"></i>{% if current_lang == 'en' %}Field & Cultivation Context{% else %}ព័ត៌មានចម្ការ & កំណត់ចំណាំជាក់ស្តែង{% endif %}
+                    </h5>
                 </div>
-                <div class="card-body" id="resultsContent">
+                <div class="card-body p-3 p-md-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="location" class="form-label small fw-semibold text-dark mb-1">
+                                <i class="fas fa-location-pin text-primary me-1"></i>{{ t('farm_location') }}
+                            </label>
+                            <div class="input-group input-group-sm mb-2">
+                                <span class="input-group-text bg-light"><i class="fas fa-map-pin text-muted"></i></span>
+                                <input type="text" class="form-control" id="location" name="location" 
+                                       placeholder="{{ t('farm_location_placeholder') }}">
+                            </div>
+                            <!-- Quick Location Presets -->
+                            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                <span class="text-muted small" style="font-size: 0.73rem;">{{ t('quick_location_label') }}</span>
+                                <span class="location-preset-tag" data-loc="មណ្ឌលគិរី (Mondulkiri)">មណ្ឌលគិរី</span>
+                                <span class="location-preset-tag" data-loc="រតនគិរី (Ratanakiri)">រតនគិរី</span>
+                                <span class="location-preset-tag" data-loc="ប៉ៃលិន (Pailin)">ប៉ៃលិន</span>
+                                <span class="location-preset-tag" data-loc="កំពត (Kampot)">កំពត</span>
+                                <span class="location-preset-tag" data-loc="បាត់ដំបង (Battambang)">បាត់ដំបង</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="notes" class="form-label small fw-semibold text-dark mb-1">
+                                <i class="fas fa-pen-to-square text-primary me-1"></i>{{ t('farm_notes') }}
+                            </label>
+                            <textarea class="form-control form-control-sm" id="notes" name="notes" rows="2" 
+                                      placeholder="{{ t('farm_notes_placeholder') }}"></textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- Submit Action Button -->
+            <div class="mb-4">
+                <button type="submit" class="btn btn-primary btn-lg w-100 py-3 shadow-sm fw-bold" id="btnDiagnose">
+                    <i class="fas fa-microscope me-2"></i> {{ t('submit_diagnosis_btn') }}
+                </button>
+                <div class="text-center text-muted small mt-2">
+                    <i class="fas fa-shield-halved me-1"></i>
+                    {% if current_lang == 'en' %}
+                    Forward Chaining algorithm computes disease rule weights & Certainty Factors in real-time
+                    {% else %}
+                    ក្បួនដោះស្រាយ Forward Chaining នឹងគណនាទម្ងន់នៃច្បាប់ និងកម្រិតជាក់លាក់ (Certainty Factor) ភ្លាមៗ
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Live Selected Tray, Specs, Guide -->
+        <div class="col-lg-4 sidebar-tips-col">
+            <!-- Live Selected Symptoms Tray -->
+            <div class="card border shadow-sm mb-4 sticky-top" style="top: 1rem; z-index: 10;">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-list-check text-primary me-1"></i> {{ t('selected_tray_title') }}
+                        <span class="badge bg-primary text-white ms-1" id="trayCountBadge">0</span>
+                    </h6>
+                    <button type="button" class="btn btn-link btn-sm text-decoration-none text-danger p-0 small" id="clearTrayBtn" style="display: none;">
+                        <i class="fas fa-trash-can me-1"></i>{{ t('clear_all') }}
+                    </button>
+                </div>
+                <div class="card-body p-3">
+                    <!-- Empty State -->
+                    <div id="trayEmptyState" class="text-center py-4 text-muted">
+                        <i class="fas fa-clipboard-list fa-2x mb-2 text-primary opacity-50 d-block"></i>
+                        <p class="small mb-0">{{ t('selected_tray_empty') }}</p>
+                    </div>
+
+                    <!-- Chips Container -->
+                    <div id="trayChips" class="d-flex flex-wrap gap-1.5" style="display: none;">
+                        <!-- Injected via JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Technical Specifications Card -->
+            <div class="card border shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom py-2.5">
+                    <h6 class="mb-0 fw-bold text-dark small">
+                        <i class="fas fa-sliders text-primary me-1.5"></i> {{ t('sys_specs_title') }}
+                    </h6>
+                </div>
+                <div class="card-body p-3">
+                    <ul class="list-unstyled mb-0 d-flex flex-column gap-2 small">
+                        <li class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="fas fa-network-wired me-1.5 text-primary"></i>{{ t('sys_specs_algo') }}</span>
+                            <span class="badge bg-primary-subtle text-primary border">{{ t('sys_specs_algo_val') }}</span>
+                        </li>
+                        <li class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="fas fa-database me-1.5 text-primary"></i>{{ t('sys_specs_kb') }}</span>
+                            <span class="fw-semibold text-dark">{{ t('sys_specs_kb_val') }}</span>
+                        </li>
+                        <li class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="fas fa-gears me-1.5 text-primary"></i>{{ t('sys_specs_engine') }}</span>
+                            <span class="fw-semibold text-dark">Weighted Rule Inference</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Clinical Field Inspection Guide Card -->
+            <div class="card border shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom py-2.5">
+                    <h6 class="mb-0 fw-bold text-dark small">
+                        <i class="fas fa-lightbulb text-warning me-1.5"></i> {{ t('inspection_guide_title') }}
+                    </h6>
+                </div>
+                <div class="card-body p-3">
+                    <ol class="ps-3 mb-0 small text-muted d-flex flex-column gap-2">
+                        {% if current_lang == 'en' %}
+                        <li>Inspect both upper and lower leaf surfaces for powdery coatings or rust spores.</li>
+                        <li>Examine stem collars and bark for discoloration, cankers, or wilt dieback.</li>
+                        <li>Observe green and ripe berries for dark sunken lesions or premature dropping.</li>
+                        <li>Selecting <strong>3 or more matching symptoms</strong> significantly enhances diagnostic certainty factor.</li>
+                        {% else %}
+                        <li>ពិនិត្យមើលផ្ទៃខាងលើ និងផ្នែកខាងក្រោមនៃស្លឹក ដើម្បីរករោគសញ្ញាចំណុច ឬម្សៅផ្សិត។</li>
+                        <li>ត្រួតពិនិត្យគល់ដើម មែក និងសំបកដើម ដើម្បីរកស្នាមរលួយ ឬការក្រៀមស្វិត។</li>
+                        <li>សង្កេតមើលផ្លែកាហ្វេទាំងខ្ចី និងទុំ ដើម្បីរកស្នាមដំបៅ ឬផ្លែជ្រុះមុនកំណត់។</li>
+                        <li>ការជ្រើសរើស <strong>៣ រោគសញ្ញាឡើងទៅ</strong> ជួយបង្កើនភាពជាក់លាក់ (Certainty Factor) កាន់តែខ្ពស់។</li>
+                        {% endif %}
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Diagnosis Results Section (Dynamically Loaded & Smooth-Scrolled) -->
+<div id="resultsSection" class="mt-4" style="display: none;">
+    <div class="card border shadow-lg overflow-hidden">
+        <div class="card-header bg-dark text-white py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-chart-pie text-primary fs-5"></i>
+                <div>
+                    <h5 class="mb-0 fw-bold fs-6 text-white">{{ t('diag_result_title') }}</h5>
+                    <small class="text-white-50" id="caseReferenceId"></small>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary text-white px-3 py-1.5 fs-7" id="matchedCountBadge">0</span>
+                <button type="button" class="btn btn-sm btn-outline-light" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i> {{ t('print_report_btn') }}
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body p-4" id="resultsContent">
+            <!-- Rendered dynamically by displayResults() -->
+        </div>
+
+        <div class="card-footer bg-light border-top p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <a href="{{ url_for('cases.index') }}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-clock-rotate-left me-1"></i> {{ t('save_history_btn') }}
+            </a>
+            <button type="button" class="btn btn-primary btn-sm" onclick="resetDiagnosis()">
+                <i class="fas fa-rotate-right me-1"></i> {{ t('run_new_diag') }}
+            </button>
         </div>
     </div>
 </div>
@@ -99,117 +340,405 @@
 
 {% block extra_js %}
 <script>
-const severityLabelsKm = {
-    'critical': 'ធ្ងន់ធ្ងរបំផុត',
-    'high': 'ខ្ពស់',
-    'medium': 'មធ្យម',
-    'low': 'ស្រាល'
+const I18N = {
+    currentLang: '{{ current_lang }}',
+    matchedSuffix: '{{ t("diseases_unit") }}',
+    noDiseaseTitle: '{{ t("no_disease_matched_title") }}',
+    noDiseaseDesc: '{{ t("no_disease_matched_desc") }}',
+    treatmentLabel: '{{ t("treatment_label") }}',
+    preventionLabel: '{{ t("prevention_label") }}',
+    confidenceLabel: '{{ t("th_confidence") }}',
+    topMatchBadge: '{% if current_lang == "en" %}Top Primary Diagnosis{% else %}ការផ្គូផ្គងខ្ពស់បំផុត (Top Match){% endif %}',
+    noTreatment: '{% if current_lang == "en" %}No specific treatment protocol recorded{% else %}គ្មានព័ត៌មានព្យាបាលជាក់លាក់{% endif %}',
+    noPrevention: '{% if current_lang == "en" %}No specific biosecurity guidelines recorded{% else %}គ្មានព័ត៌មានការពារជាក់លាក់{% endif %}',
+    loadingText: '{% if current_lang == "en" %}Evaluating Forward Chaining Rules...{% else %}កំពុងដំណើរការវិភាគក្បួន Forward Chaining...{% endif %}',
+    btnDefaultText: '<i class="fas fa-microscope me-2"></i> {{ t("submit_diagnosis_btn") }}',
+    selectPrompt: '{% if current_lang == "en" %}Please select at least one symptom to diagnose.{% else %}សូមជ្រើសរើសរោគសញ្ញាយ៉ាងហោចណាស់មួយដើម្បីវិភាគ!{% endif %}',
+    differentialHeading: '{{ t("diff_diagnoses_title") }}',
+    matchedSymptomsLabel: '{% if current_lang == "en" %}Symptoms Matched{% else %}រោគសញ្ញាត្រូវគ្នា{% endif %}',
+    caseIdPrefix: '{% if current_lang == "en" %}Case Record #CAS-{% else %}កំណត់ត្រាករណីលេខ #CAS-{% endif %}',
+    severityLabel: '{% if current_lang == "en" %}Severity{% else %}កម្រិតធ្ងន់ធ្ងរ{% endif %}'
 };
 
-document.getElementById('diagnosisForm').addEventListener('submit', async (e) => {
+// ==========================================
+// 1. Interactive Symptom Search & Filtering
+// ==========================================
+const searchInput = document.getElementById('symptomSearch');
+const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+searchInput.addEventListener('input', function() {
+    const q = this.value.trim().toLowerCase();
+    clearSearchBtn.style.display = q ? 'inline-block' : 'none';
+    const activeCategory = document.querySelector('.category-filter-btn.active').dataset.category;
+    filterSymptoms(q, activeCategory);
+});
+
+clearSearchBtn.addEventListener('click', function() {
+    searchInput.value = '';
+    this.style.display = 'none';
+    const activeCategory = document.querySelector('.category-filter-btn.active').dataset.category;
+    filterSymptoms('', activeCategory);
+    searchInput.focus();
+});
+
+// Category pills filter
+document.querySelectorAll('.category-filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.category-filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        const q = searchInput.value.trim().toLowerCase();
+        filterSymptoms(q, this.dataset.category);
+    });
+});
+
+function filterSymptoms(query, category) {
+    const items = document.querySelectorAll('.symptom-item');
+    let visibleCount = 0;
+
+    items.forEach(item => {
+        const matchesQuery = !query || item.dataset.search.includes(query);
+        const matchesCategory = (category === 'all') || (item.dataset.category === category);
+        
+        if (matchesQuery && matchesCategory) {
+            item.style.display = '';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    const noMatchEl = document.getElementById('noSearchMatch');
+    if (noMatchEl) {
+        noMatchEl.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+}
+
+// Select visible / Deselect visible buttons
+document.getElementById('btnSelectVisible').addEventListener('click', function() {
+    document.querySelectorAll('.symptom-item').forEach(item => {
+        if (item.style.display !== 'none') {
+            const cb = item.querySelector('.symptom-cb');
+            if (cb && !cb.checked) {
+                cb.checked = true;
+                item.querySelector('.symptom-card').classList.add('selected');
+            }
+        }
+    });
+    syncState();
+});
+
+document.getElementById('btnDeselectVisible').addEventListener('click', function() {
+    document.querySelectorAll('.symptom-item').forEach(item => {
+        if (item.style.display !== 'none') {
+            const cb = item.querySelector('.symptom-cb');
+            if (cb && cb.checked) {
+                cb.checked = false;
+                item.querySelector('.symptom-card').classList.remove('selected');
+            }
+        }
+    });
+    syncState();
+});
+
+// ==========================================
+// 2. Selection State & Live Tray Sync
+// ==========================================
+document.querySelectorAll('.symptom-cb').forEach(cb => {
+    cb.addEventListener('change', function() {
+        const card = this.closest('.symptom-card');
+        if (this.checked) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
+        syncState();
+    });
+});
+
+// Quick location preset tags
+document.querySelectorAll('.location-preset-tag').forEach(tag => {
+    tag.addEventListener('click', function() {
+        const locInput = document.getElementById('location');
+        locInput.value = this.dataset.loc;
+        locInput.focus();
+    });
+});
+
+// Clear Tray & Header Reset buttons
+document.getElementById('clearTrayBtn').addEventListener('click', clearAllSymptoms);
+document.getElementById('headerResetBtn').addEventListener('click', clearAllSymptoms);
+
+function clearAllSymptoms() {
+    document.querySelectorAll('.symptom-cb').forEach(cb => {
+        cb.checked = false;
+    });
+    document.querySelectorAll('.symptom-card').forEach(c => {
+        c.classList.remove('selected');
+    });
+    syncState();
+}
+
+function syncState() {
+    const checked = Array.from(document.querySelectorAll('.symptom-cb:checked'));
+    const count = checked.length;
+
+    // Update count labels
+    document.getElementById('selectedCount').textContent = count;
+    document.getElementById('trayCountBadge').textContent = count;
+
+    const trayEmpty = document.getElementById('trayEmptyState');
+    const trayChips = document.getElementById('trayChips');
+    const clearTrayBtn = document.getElementById('clearTrayBtn');
+
+    if (count === 0) {
+        trayEmpty.style.display = 'block';
+        trayChips.style.display = 'none';
+        trayChips.innerHTML = '';
+        clearTrayBtn.style.display = 'none';
+    } else {
+        trayEmpty.style.display = 'none';
+        trayChips.style.display = 'flex';
+        clearTrayBtn.style.display = 'inline-block';
+
+        // Render chips
+        let chipsHtml = '';
+        checked.forEach(cb => {
+            const id = cb.dataset.id;
+            const code = cb.dataset.code;
+            const name = cb.dataset.displayName;
+            chipsHtml += `
+                <span class="selected-tray-chip" data-id="${id}">
+                    <span class="badge bg-primary text-white px-1 py-0.5" style="font-size: 0.65rem;">${code}</span>
+                    <span class="text-truncate" style="max-width: 140px;">${name}</span>
+                    <i class="fas fa-times chip-remove" onclick="removeSymptom('${id}')" title="Remove"></i>
+                </span>
+            `;
+        });
+        trayChips.innerHTML = chipsHtml;
+    }
+}
+
+window.removeSymptom = function(symptomId) {
+    const cb = document.getElementById('symptom' + symptomId);
+    if (cb) {
+        cb.checked = false;
+        const card = cb.closest('.symptom-card');
+        if (card) card.classList.remove('selected');
+    }
+    syncState();
+};
+
+// ==========================================
+// 3. Diagnosis Form Submission
+// ==========================================
+document.getElementById('diagnosisForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const selectedSymptoms = formData.getAll('symptoms[]');
-    
-    if (selectedSymptoms.length === 0) {
-        alert('សូមជ្រើសរើសរោគសញ្ញាយ៉ាងហោចណាស់មួយ');
+    const formData = new FormData(this);
+    const selected = formData.getAll('symptoms[]');
+
+    if (selected.length === 0) {
+        alert(I18N.selectPrompt);
         return;
     }
-    
+
+    const submitBtn = document.getElementById('btnDiagnose');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${I18N.loadingText}`;
+
     try {
-        const response = await fetch('{{ url_for("diagnosis.diagnose") }}', {
+        const res = await fetch('{{ url_for("diagnosis.diagnose") }}', {
             method: 'POST',
             body: formData
         });
-        
-        const data = await response.json();
+        const data = await res.json();
         
         if (data.success) {
-            displayResults(data.results);
+            displayResults(data.results, data.case_id);
+            // Advance stepper indicator
+            document.getElementById('step3Indicator').classList.add('active');
         } else {
-            alert('កំហុស៖ ' + data.error);
+            alert('Error: ' + (data.error || 'Failed to diagnose'));
         }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('មានកំហុសកើតឡើងក្នុងអំឡុងពេលធ្វើការវិនិច្ឆ័យ');
+    } catch (err) {
+        console.error(err);
+        alert('Server communication error. Please try again.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = I18N.btnDefaultText;
     }
 });
 
-function displayResults(results) {
-    const resultsSection = document.getElementById('resultsSection');
-    const resultsContent = document.getElementById('resultsContent');
+// ==========================================
+// 4. Clinical Results Presentation
+// ==========================================
+function displayResults(results, caseId) {
+    const sec = document.getElementById('resultsSection');
+    const content = document.getElementById('resultsContent');
+    const badge = document.getElementById('matchedCountBadge');
+    const caseRef = document.getElementById('caseReferenceId');
+    
+    badge.textContent = `${results.length} ${I18N.matchedSuffix}`;
+    if (caseId) {
+        caseRef.textContent = `${I18N.caseIdPrefix}${caseId.toString().padStart(5, '0')}`;
+    }
     
     if (results.length === 0) {
-        resultsContent.innerHTML = '<div class="alert alert-warning">រកមិនឃើញជំងឺដែលត្រូវគ្នាទេ។ សូមពិនិត្យមើលការជ្រើសរើសរោគសញ្ញារបស់អ្នកឡើងវិញ។</div>';
+        content.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-triangle-exclamation fa-3x mb-3 text-secondary opacity-50 d-block"></i>
+                <h5 class="fw-bold text-dark">${I18N.noDiseaseTitle}</h5>
+                <p class="small text-muted max-w-lg mx-auto">${I18N.noDiseaseDesc}</p>
+            </div>
+        `;
     } else {
-        let html = '<div class="row g-3">';
+        const top = results[0];
+        const topName = (I18N.currentLang === 'en' && top.disease_name_en) ? top.disease_name_en : top.disease_name;
+        const topDesc = (I18N.currentLang === 'en' && top.description_en) ? top.description_en : (top.description || '');
+        const topTreat = (I18N.currentLang === 'en' && top.treatment_en) ? top.treatment_en : (top.treatment || I18N.noTreatment);
+        const topPrev = (I18N.currentLang === 'en' && top.prevention_en) ? top.prevention_en : (top.prevention || I18N.noPrevention);
         
-        results.forEach((result, index) => {
-            const confidenceClass = result.confidence >= 70 ? 'success' : result.confidence >= 50 ? 'warning' : 'danger';
-            const severityClass = result.severity === 'critical' ? 'danger' : result.severity === 'high' ? 'warning' : 'info';
-            const severityLabel = severityLabelsKm[result.severity] || result.severity;
-            
-            html += `
-                <div class="col-md-12">
-                    <div class="card border-${index === 0 ? 'danger' : 'secondary'} h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <h5 class="card-title mb-0">
-                                    ${index === 0 ? '<i class="fas fa-star text-warning"></i> ' : ''}
-                                    ${result.disease_name}
-                                    <span class="badge bg-${severityClass} ms-2">${severityLabel}</span>
-                                </h5>
-                                <h4 class="mb-0 text-${confidenceClass}">${result.confidence}%</h4>
+        let sevBadgeClass = 'bg-primary-subtle text-primary border-primary-subtle';
+        if (top.severity === 'critical' || top.severity === 'high') {
+            sevBadgeClass = 'badge-subtle-danger';
+        } else if (top.severity === 'medium') {
+            sevBadgeClass = 'badge-subtle-warning';
+        }
+
+        let html = `
+            <!-- Top Match Executive Clinical Card -->
+            <div class="card diag-top-card mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 pb-3 border-bottom mb-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1.5 flex-wrap">
+                                <span class="badge bg-primary text-white shadow-xs">
+                                    <i class="fas fa-crown me-1 text-warning"></i>${I18N.topMatchBadge}
+                                </span>
+                                <span class="symptom-code-badge fs-7">${top.disease_code}</span>
+                                <span class="badge ${sevBadgeClass} border">${I18N.severityLabel}: ${top.severity || 'Medium'}</span>
                             </div>
-                            
-                            <div class="progress mb-3" style="height: 25px;">
-                                <div class="progress-bar bg-${confidenceClass}" style="width: ${result.confidence}%">
-                                    ភាពជឿជាក់៖ ${result.confidence}%
-                                </div>
+                            <h3 class="h4 fw-bold text-dark mb-1">${topName}</h3>
+                            <p class="text-muted fst-italic small mb-0">${top.scientific_name || ''}</p>
+                        </div>
+                        <div class="diag-confidence-gauge text-md-end">
+                            <span class="diag-confidence-num">${top.confidence}%</span>
+                            <span class="text-muted small fw-semibold">${I18N.confidenceLabel}</span>
+                            <span class="badge bg-light text-primary border mt-1" style="font-size: 0.72rem;">
+                                <i class="fas fa-check-circle me-1 text-primary"></i>${top.matched_symptoms} ${I18N.matchedSymptomsLabel}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Certainty Factor Progress Bar -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center small text-muted mb-1">
+                            <span>Certainty Factor (CF)</span>
+                            <span class="fw-semibold text-dark">${top.confidence}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: ${top.confidence}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Pathological Description -->
+                    <div class="p-3 bg-light rounded-3 border mb-4">
+                        <h6 class="fw-bold text-dark small mb-1.5">
+                            <i class="fas fa-circle-info text-primary me-1.5"></i>{% if current_lang == 'en' %}Pathological Overview{% else %}ទិដ្ឋភាពទូទៅនៃជំងឺ{% endif %}
+                        </h6>
+                        <p class="small text-muted mb-0 lh-base">${topDesc}</p>
+                    </div>
+
+                    <!-- 2-Column Clinical Protocol (Treatment & Prevention) -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3.5 rounded-3 border h-100" style="background-color: #f8fafc; border-left: 4px solid #2563eb !important;">
+                                <h6 class="fw-bold text-primary small mb-2 d-flex align-items-center">
+                                    <i class="fas fa-prescription-bottle-medical me-2 fs-6"></i>${I18N.treatmentLabel}
+                                </h6>
+                                <p class="small text-dark mb-0 lh-base">${topTreat}</p>
                             </div>
-                            
-                            <p class="text-muted mb-2"><strong>កូដ៖</strong> ${result.disease_code}</p>
-                            <p class="mb-3">${result.description}</p>
-                            
-                            <div class="accordion" id="accordion${index}">
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" 
-                                                data-bs-toggle="collapse" data-bs-target="#treatment${index}">
-                                            <i class="fas fa-pills me-2"></i> ការព្យាបាល
-                                        </button>
-                                    </h2>
-                                    <div id="treatment${index}" class="accordion-collapse collapse" 
-                                         data-bs-parent="#accordion${index}">
-                                        <div class="accordion-body">${result.treatment}</div>
-                                    </div>
-                                </div>
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" 
-                                                data-bs-toggle="collapse" data-bs-target="#prevention${index}">
-                                            <i class="fas fa-shield-alt me-2"></i> ការការពារ
-                                        </button>
-                                    </h2>
-                                    <div id="prevention${index}" class="accordion-collapse collapse" 
-                                         data-bs-parent="#accordion${index}">
-                                        <div class="accordion-body">${result.prevention}</div>
-                                    </div>
-                                </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3.5 rounded-3 border h-100" style="background-color: #f8fafc; border-left: 4px solid #0f172a !important;">
+                                <h6 class="fw-bold text-dark small mb-2 d-flex align-items-center">
+                                    <i class="fas fa-shield-virus me-2 text-primary fs-6"></i>${I18N.preventionLabel}
+                                </h6>
+                                <p class="small text-dark mb-0 lh-base">${topPrev}</p>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+        `;
+
+        // Differential Diagnoses (if multiple matches)
+        if (results.length > 1) {
+            html += `
+                <div class="mt-4 pt-2">
+                    <h6 class="fw-bold text-dark mb-3">
+                        <i class="fas fa-list-ol text-primary me-2"></i>${I18N.differentialHeading} (${results.length - 1})
+                    </h6>
+                    <div class="row g-3">
             `;
-        });
-        
-        html += '</div>';
-        resultsContent.innerHTML = html;
+
+            for (let i = 1; i < results.length; i++) {
+                const r = results[i];
+                const diffName = (I18N.currentLang === 'en' && r.disease_name_en) ? r.disease_name_en : r.disease_name;
+                const diffDesc = (I18N.currentLang === 'en' && r.description_en) ? r.description_en : (r.description || '');
+                const diffTreat = (I18N.currentLang === 'en' && r.treatment_en) ? r.treatment_en : (r.treatment || I18N.noTreatment);
+
+                html += `
+                    <div class="col-md-6">
+                        <div class="card border shadow-xs h-100">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-1.5 mb-1">
+                                            <span class="symptom-code-badge">${r.disease_code}</span>
+                                            <strong class="text-dark small">${diffName}</strong>
+                                        </div>
+                                        <small class="text-muted fst-italic d-block" style="font-size: 0.75rem;">${r.scientific_name || ''}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="fw-bold text-primary fs-6">${r.confidence}%</span>
+                                        <small class="text-muted d-block" style="font-size: 0.68rem;">${r.matched_symptoms} ${I18N.matchedSymptomsLabel}</small>
+                                    </div>
+                                </div>
+                                <div class="progress mb-2" style="height: 6px;">
+                                    <div class="progress-bar bg-secondary" role="progressbar" style="width: ${r.confidence}%"></div>
+                                </div>
+                                <p class="text-muted small mb-2 line-clamp-2" style="font-size: 0.78rem;">${diffDesc}</p>
+                                <div class="p-2 bg-light rounded border">
+                                    <strong class="text-primary d-block small mb-1" style="font-size: 0.72rem;">${I18N.treatmentLabel}</strong>
+                                    <span class="small text-muted" style="font-size: 0.74rem;">${diffTreat}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+
+        content.innerHTML = html;
     }
     
-    resultsSection.style.display = 'block';
-    resultsSection.scrollIntoView({ behavior: 'smooth' });
+    sec.style.display = 'block';
+    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+window.resetDiagnosis = function() {
+    clearAllSymptoms();
+    document.getElementById('location').value = '';
+    document.getElementById('notes').value = '';
+    document.getElementById('resultsSection').style.display = 'none';
+    document.getElementById('step3Indicator').classList.remove('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 </script>
 {% endblock %}

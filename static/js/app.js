@@ -63,5 +63,5 @@ function deleteCase(id) {
 }
 
 function applyFilter(period) {
-    window.location.href = "{{ url_for('cases.index') }}?period=" + period;
+    window.location.href = '/cases/?period=' + encodeURIComponent(period);
 }

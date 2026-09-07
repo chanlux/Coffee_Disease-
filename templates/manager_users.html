@@ -1,82 +1,104 @@
 {% extends "base.html" %}
 
-{% block title %}គ្រប់គ្រងអ្នកប្រើប្រាស់ - ប្រព័ន្ធជំងឺដើមកាហ្វេ{% endblock %}
+{% block title %}{{ t('manage_users_title') }} - {{ t('app_title') }}{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-users-cog text-success"></i> គ្រប់គ្រងអ្នកប្រើប្រាស់</h1>
-        <a href="{{ url_for('auth.register') }}" class="btn btn-success">
-            <i class="fas fa-user-plus"></i> បន្ថែមអ្នកជំនាញថ្មី
-        </a>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h2 class="h3 fw-bold text-dark mb-1">
+            <i class="fas fa-users-gear text-primary me-1"></i> {{ t('manage_users_title') }}
+        </h2>
+        <p class="text-muted mb-0">{{ t('manage_users_subtitle') }}</p>
     </div>
+    <a href="{{ url_for('auth.register') }}" class="btn btn-primary">
+        <i class="fas fa-user-plus"></i> {% if current_lang == 'en' %}Add New User{% else %}បន្ថែមគណនីថ្មី{% endif %}
+    </a>
+</div>
 
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+<div class="card border shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0 fw-bold fs-6">{% if current_lang == 'en' %}All Registered Accounts{% else %}បញ្ជីអ្នកប្រើប្រាស់ទាំងអស់{% endif %}</h5>
+        <span class="badge bg-light text-muted border">{{ users|length }} {% if current_lang == 'en' %}Accounts{% else %}គណនី{% endif %}</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">{{ t('th_id') }}</th>
+                        <th>{% if current_lang == 'en' %}Name & Username{% else %}ឈ្មោះ និង គណនី{% endif %}</th>
+                        <th>{{ t('email_label') }}</th>
+                        <th>{{ t('role_label') }}</th>
+                        <th>{{ t('th_date') }}</th>
+                        <th class="text-end pe-4">{{ t('th_actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if users %}
+                        {% for user in users %}
                         <tr>
-                            <th class="ps-4">លេខសម្គាល់</th>
-                            <th>ឈ្មោះអ្នកប្រើប្រាស់</th>
-                            <th>អ៊ីមែល</th>
-                            <th>តួនាទី</th>
-                            <th>បានបង្កើត</th>
-                            <th class="text-end pe-4">សកម្មភាព</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if users %}
-                            {% for user in users %}
-                            <tr>
-                                <td class="ps-4 text-muted">{{ user.id }}</td>
-                                <td><strong>{{ user.username }}</strong></td>
-                                <td>{{ user.email }}</td>
-                                <td>
-                                    <span class="badge {% if user.role == 'admin' %}bg-danger{% elif user.role == 'expert' %}bg-primary{% elif user.role == 'doctor' %}bg-info{% else %}bg-secondary{% endif %}">
-                                        {% if user.role == 'admin' %}អ្នកគ្រប់គ្រង{% elif user.role == 'expert' %}អ្នកជំនាញ{% elif user.role == 'doctor' %}វេជ្ជបណ្ឌិត{% elif user.role == 'manager' %}អ្នកចាត់ការ{% else %}អ្នកប្រើប្រាស់{% endif %}
-                                    </span>
-                                </td>
-                                <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'គ្មាន' }}</td>
-                                <td class="text-end pe-4">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        
-                                        <a href="{{ url_for('auth.edit_user', user_id=user.id) }}" 
-                                           class="btn btn-sm btn-outline-primary" 
-                                           style="width: 80px;">
-                                            <i class="fas fa-edit"></i> កែសម្រួល
-                                        </a>
-
-                                        {% if user.id != current_user.id %}
-                                        <form action="{{ url_for('auth.delete_user', user_id=user.id) }}" 
-                                              method="POST" 
-                                              class="d-inline-block" 
-                                              onsubmit="return confirm('តើអ្នកប្រាកដថាចង់លុបអ្នកប្រើប្រាស់នេះជាអចិន្ត្រៃយ៍មែនទេ៖ {{ user.username }}?')">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" style="width: 80px;">
-                                                <i class="fas fa-trash"></i> លុប
-                                            </button>
-                                        </form>
-                                        {% else %}
-                                        <button class="btn btn-sm btn-outline-danger" disabled style="width: 80px;" title="មិនអាចលុបខ្លួនឯងបានទេ">
-                                            <i class="fas fa-user-slash"></i> លុប
-                                        </button>
-                                        {% endif %}
-
+                            <td class="ps-4">
+                                <span class="badge bg-light text-dark border">#{{ user.id }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-secondary border" style="width: 36px; height: 36px;">
+                                        <i class="fas fa-user"></i>
                                     </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">
-                                    <i class="fas fa-users fa-3x mb-3 d-block"></i>
-                                    រកមិនឃើញអ្នកប្រើប្រាស់ក្នុងប្រព័ន្ធទេ
-                                </td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
+                                    <div>
+                                        <strong class="text-dark d-block">{{ user.full_name or user.username }}</strong>
+                                        <small class="text-muted">@{{ user.username }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="small text-muted">{{ user.email }}</td>
+                            <td>
+                                {% if user.role == 'admin' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="fas fa-shield-halved me-1"></i>Admin</span>
+                                {% elif user.role == 'expert' %}
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="fas fa-award me-1"></i>Expert</span>
+                                {% elif user.role == 'doctor' %}
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle"><i class="fas fa-user-doctor me-1"></i>Doctor</span>
+                                {% elif user.role == 'manager' %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="fas fa-briefcase me-1"></i>Manager</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="fas fa-user me-1"></i>User</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else t('unspecified') }}</td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex justify-content-end gap-1">
+                                    <a href="{{ url_for('auth.edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-secondary" title="{{ t('btn_edit') }}">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if user.id != current_user.id %}
+                                    <form action="{{ url_for('auth.delete_user', user_id=user.id) }}" 
+                                          method="POST" 
+                                          class="d-inline-block" 
+                                          onsubmit="return confirm('{% if current_lang == 'en' %}Are you sure you want to delete user {{ user.username }}?{% else %}តើអ្នកពិតជាចង់លុបគណនី {{ user.username }} នេះមែនទេ?{% endif %}')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ t('btn_delete') }}">
+                                            <i class="fas fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-light border text-muted" disabled title="{% if current_lang == 'en' %}Cannot delete self{% else %}មិនអាចលុបគណនីខ្លួនឯងបានទេ{% endif %}">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fas fa-users-slash fa-3x mb-3 text-secondary opacity-50 d-block"></i>
+                                {% if current_lang == 'en' %}No users found in database{% else %}រកមិនឃើញអ្នកប្រើប្រាស់ក្នុងប្រព័ន្ធទេ{% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

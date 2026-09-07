@@ -9,16 +9,16 @@ from routes import register_routes
 def create_app(config_class=None):
     app = Flask(__name__)
 
-    # Force production configuration on Vercel so it reads DATABASE_URL
+    # Default to production on Vercel, and development when running locally
     if config_class is None:
-        env = os.environ.get('FLASK_ENV', 'production')
+        default_env = 'production' if os.environ.get('VERCEL') == '1' else 'development'
+        env = os.environ.get('FLASK_ENV', default_env)
         config_class = config_dict.get(env, Config)
 
     app.config.from_object(config_class)
 
-    # Wrap folder creation in try-except so read-only serverless environments don't crash
+    # Ensure static upload directory exists
     try:
-        os.makedirs('database', exist_ok=True)
         os.makedirs('static/images/coffee_leaves', exist_ok=True)
     except OSError:
         pass
@@ -35,44 +35,68 @@ def create_app(config_class=None):
 
     app.jinja_env.filters['from_json'] = from_json_filter
 
-    CATEGORY_KM = {
-        'leaf': 'ស្លឹក',
-        'berry': 'ផ្លែ',
-        'root': 'ឫស',
-        'stem': 'ដើម',
-        'other': 'ផ្សេងៗ',
+    from flask import session, request, redirect, url_for
+    from translations import gettext, get_localized_symptom, get_localized_disease
+
+    CATEGORY_MAP = {
+        'km': {'leaf': 'ស្លឹក', 'berry': 'ផ្លែ', 'root': 'ឫស', 'stem': 'ដើម & មែក', 'other': 'ផ្សេងៗ'},
+        'en': {'leaf': 'Leaf', 'berry': 'Berry', 'root': 'Root', 'stem': 'Stem & Branch', 'other': 'Other'}
     }
 
-    SEVERITY_KM = {
-        'low': 'ស្រាល',
-        'medium': 'មធ្យម',
-        'high': 'ខ្ពស់',
-        'critical': 'ធ្ងន់ធ្ងរបំផុត',
+    SEVERITY_MAP = {
+        'km': {'low': 'ស្រាល', 'medium': 'មធ្យម', 'high': 'ខ្ពស់', 'critical': 'ធ្ងន់ធ្ងរបំផុត'},
+        'en': {'low': 'Low', 'medium': 'Medium', 'high': 'High', 'critical': 'Critical'}
     }
 
-    def category_km_filter(value):
+    def category_filter(value):
         if not value:
             return value
-        return CATEGORY_KM.get(str(value).lower(), value)
+        lang = session.get('lang', 'km')
+        mapping = CATEGORY_MAP.get(lang, CATEGORY_MAP['km'])
+        return mapping.get(str(value).lower(), value)
 
-    def severity_km_filter(value):
+    def severity_filter(value):
         if not value:
             return value
-        return SEVERITY_KM.get(str(value).lower(), value)
+        lang = session.get('lang', 'km')
+        mapping = SEVERITY_MAP.get(lang, SEVERITY_MAP['km'])
+        return mapping.get(str(value).lower(), value)
 
-    app.jinja_env.filters['category_km'] = category_km_filter
-    app.jinja_env.filters['severity_km'] = severity_km_filter
+    app.jinja_env.filters['category_km'] = category_filter
+    app.jinja_env.filters['severity_km'] = severity_filter
+    app.jinja_env.filters['category_label'] = category_filter
+    app.jinja_env.filters['severity_label'] = severity_filter
+
+    @app.context_processor
+    def inject_localization():
+        current_lang = session.get('lang', 'km')
+        return {
+            'current_lang': current_lang,
+            't': lambda key, default=None: gettext(key, lang=current_lang, default=default),
+            'get_symptom_name': lambda s: get_localized_symptom(s, lang=current_lang)['name'],
+            'get_symptom_desc': lambda s: get_localized_symptom(s, lang=current_lang)['description'],
+            'get_disease_name': lambda d: get_localized_disease(d, lang=current_lang)['name'],
+            'get_disease_desc': lambda d: get_localized_disease(d, lang=current_lang)['description'],
+            'get_disease_treatment': lambda d: get_localized_disease(d, lang=current_lang)['treatment'],
+            'get_disease_prevention': lambda d: get_localized_disease(d, lang=current_lang)['prevention'],
+        }
+
+    @app.route('/set-language/<lang>')
+    def set_language(lang):
+        if lang in ['km', 'en']:
+            session['lang'] = lang
+        next_url = request.referrer or url_for('diagnosis.dashboard')
+        return redirect(next_url)
 
     register_routes(app)
 
-    # Safely handle database creation and sample data population on startup
+    # Safely populate sample data on startup if tables are migrated
     with app.app_context():
         try:
-            db.create_all()
             create_sample_data()
         except Exception as e:
-            # Prevents app crash on Vercel if remote DB is unreachable or already initialized
-            print(f"Database initialization warning: {e}")
+            # Prevents app crash if DB is not yet migrated or unreachable
+            pass
 
     return app
 
@@ -113,56 +137,22 @@ def create_sample_data():
             doctor.set_password('doctor123')
             db.session.add(doctor)
 
-        if Symptom.query.count() == 0:
-            symptoms_data = [
-                {'code': 'S01', 'name': 'ចំណុចលឿងនៅលើស្លឹក', 'category': 'leaf'},
-                {'code': 'S02', 'name': 'របួសពណ៌ត្នោត', 'category': 'leaf'},
-                {'code': 'S03', 'name': 'ស្លឹកទន់ស្រពោន', 'category': 'leaf'},
-                {'code': 'S04', 'name': 'ស្រទាប់សដូចម្សៅ', 'category': 'leaf'},
-                {'code': 'S05', 'name': 'ស្លឹកជ្រុះមុនកំណត់', 'category': 'leaf'},
-            ]
+        from models.seed_data import SYMPTOMS, DISEASES, RULES
 
-            for s in symptoms_data:
+        if Symptom.query.count() == 0:
+            for s in SYMPTOMS:
                 symptom = Symptom(**s)
                 db.session.add(symptom)
 
         if Disease.query.count() == 0:
-            diseases_data = [
-                {
-                    'code': 'D01',
-                    'name': 'ជំងឺច្រែះស្លឹកកាហ្វេ',
-                    'scientific_name': 'Hemileia vastatrix',
-                    'description': 'ជំងឺផ្សិតដែលប៉ះពាល់ដល់ស្លឹកកាហ្វេ',
-                    'treatment': 'ប្រើថ្នាំសម្លាប់ផ្សិតដែលមានផ្អែកលើទង់ដែង',
-                    'prevention': 'កាត់មែកឈើដែលឆ្លងជំងឺ និងកែលម្អចរន្តខ្យល់',
-                    'severity': 'high'
-                },
-                {
-                    'code': 'D02',
-                    'name': 'ជំងឺផ្លែកាហ្វេ',
-                    'scientific_name': 'Colletotrichum kahawae',
-                    'description': 'ប៉ះពាល់ដល់ផ្លែកាហ្វេ',
-                    'treatment': 'ដកផ្លែកាហ្វេដែលឆ្លងជំងឺចេញ ហើយប្រើថ្នាំសម្លាប់ផ្សិត',
-                    'prevention': 'ត្រួតពិនិត្យជាទៀងទាត់ និងអនាម័យ',
-                    'severity': 'critical'
-                }
-            ]
-
-            for d in diseases_data:
+            for d in DISEASES:
                 disease = Disease(**d)
                 db.session.add(disease)
 
         db.session.commit()
 
         if DiseaseRule.query.count() == 0:
-            rules_data = [
-                {'disease_id': 1, 'symptom_id': 1, 'certainty_factor': 0.9, 'weight': 1.0},
-                {'disease_id': 1, 'symptom_id': 2, 'certainty_factor': 0.8, 'weight': 0.8},
-                {'disease_id': 2, 'symptom_id': 2, 'certainty_factor': 0.85, 'weight': 0.9},
-                {'disease_id': 2, 'symptom_id': 3, 'certainty_factor': 0.75, 'weight': 0.7},
-            ]
-
-            for r in rules_data:
+            for r in RULES:
                 rule = DiseaseRule(**r)
                 db.session.add(rule)
 
@@ -175,6 +165,13 @@ def create_sample_data():
 
 
 app = create_app()
+
+@app.cli.command("seed-db")
+def seed_db_command():
+    """Seed sample data into database."""
+    with app.app_context():
+        create_sample_data()
+        print("Database seeded successfully with users, diseases, symptoms, and rules.")
 
 # Run locally
 if __name__ == '__main__':
