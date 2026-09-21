@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: coffee-disease-backend
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.15
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: coffee-disease-db
+          property: connectionString
+
+databases:
+  - name: coffee-disease-db
+    databaseName: coffee_diagnosis
+    user: coffee_user
+    plan: free

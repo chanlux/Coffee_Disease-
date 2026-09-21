@@ -9,13 +9,23 @@ from routes import register_routes
 def create_app(config_class=None):
     app = Flask(__name__)
 
-    # Default to production on Vercel, and development when running locally
+    # Default to production on Vercel or Render, and development when running locally
     if config_class is None:
-        default_env = 'production' if os.environ.get('VERCEL') == '1' else 'development'
+        default_env = 'production' if (os.environ.get('VERCEL') == '1' or os.environ.get('RENDER')) else 'development'
         env = os.environ.get('FLASK_ENV', default_env)
         config_class = config_dict.get(env, Config)
+    elif isinstance(config_class, str):
+        config_class = config_dict.get(config_class, Config)
 
     app.config.from_object(config_class)
+
+    # Enable ProxyFix behind reverse proxies (Render, Vercel)
+    if os.environ.get('RENDER') or os.environ.get('VERCEL') == '1':
+        try:
+            from werkzeug.middleware.proxy_fix import ProxyFix
+            app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+        except Exception:
+            pass
 
     # Ensure static upload directory exists
     try:
@@ -90,12 +100,13 @@ def create_app(config_class=None):
 
     register_routes(app)
 
-    # Safely populate sample data on startup if tables are migrated
+    # Safely ensure database tables exist and populate sample data on startup
     with app.app_context():
         try:
+            db.create_all()
             create_sample_data()
         except Exception as e:
-            # Prevents app crash if DB is not yet migrated or unreachable
+            # Prevents app crash if DB is not yet reachable
             pass
 
     return app

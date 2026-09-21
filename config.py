@@ -55,8 +55,8 @@ class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
     TESTING = False
-    # Only enforce secure cookies if on Vercel/HTTPS or explicitly configured
-    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True' if os.environ.get('VERCEL') else 'False').lower() in ('true', '1')
+    # Only enforce secure cookies if on Vercel/Render/HTTPS or explicitly configured
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True' if (os.environ.get('VERCEL') or os.environ.get('RENDER')) else 'False').lower() in ('true', '1')
 
 
 class TestingConfig(Config):

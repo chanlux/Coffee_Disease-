@@ -84,11 +84,22 @@ def add_rule():
     if current_user.role not in ['admin', 'expert', 'manager', 'doctor']:
         return jsonify({'error': 'គ្មានការអនុញ្ញាត'}), 403
     
+    cf_val = request.form.get('certainty_factor')
+    weight_val = request.form.get('weight')
+    try:
+        cf = float(cf_val) if cf_val else 1.0
+    except (ValueError, TypeError):
+        cf = 1.0
+    try:
+        w = float(weight_val) if weight_val else 1.0
+    except (ValueError, TypeError):
+        w = 1.0
+
     rule = DiseaseRule(
         disease_id=request.form.get('disease_id'),
         symptom_id=request.form.get('symptom_id'),
-        certainty_factor=float(request.form.get('certainty_factor', 1.0)),
-        weight=float(request.form.get('weight', 1.0))
+        certainty_factor=cf,
+        weight=w
     )
     
     db.session.add(rule)
@@ -139,10 +150,13 @@ def delete_symptom(symptom_id):
         return jsonify({'error': 'គ្មានការអនុញ្ញាត'}), 403
 
     symptom = Symptom.query.get_or_404(symptom_id)
-    db.session.delete(symptom)
-    db.session.commit()
-
-    return jsonify({'success': True, 'message': 'បានលុបរោគសញ្ញា'})
+    try:
+        db.session.delete(symptom)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'បានលុបរោគសញ្ញា'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'មិនអាចលុបរោគសញ្ញានេះបានទេ ព្រោះមានច្បាប់វិនិច្ឆ័យកំពុងប្រើប្រាស់វា'}), 400
 
 @rules_bp.route('/rule/<int:rule_id>/delete', methods=['POST'])
 @login_required

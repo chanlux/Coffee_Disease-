@@ -12,7 +12,7 @@ cases_bp = Blueprint('cases', __name__, url_prefix='/cases')
 def index():
     period = request.args.get('period')
     
-    if current_user.role in ['admin', 'manager', 'expert']:
+    if current_user.role in ['admin', 'manager', 'expert', 'doctor']:
         query = DiagnosisCase.query
     else:
         query = DiagnosisCase.query.filter_by(user_id=current_user.id)
@@ -36,7 +36,7 @@ def index():
 @login_required
 def view_case(case_id):
     case = DiagnosisCase.query.get_or_404(case_id)
-    if current_user.role not in ['admin', 'manager', 'expert'] and case.user_id != current_user.id:
+    if current_user.role not in ['admin', 'manager', 'expert', 'doctor'] and case.user_id != current_user.id:
         return jsonify({'error': 'គ្មានការអនុញ្ញាត'}), 403
 
     try:
