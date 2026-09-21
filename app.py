@@ -35,6 +35,13 @@ def create_app(config_class=None):
 
     init_app(app)
 
+    # Enable CORS for external frontends (e.g. React, Next.js, Vercel, mobile apps)
+    try:
+        from flask_cors import CORS
+        CORS(app, supports_credentials=True)
+    except Exception:
+        pass
+
     def from_json_filter(value):
         try:
             if isinstance(value, str):
